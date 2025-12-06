@@ -9,7 +9,6 @@ let map;
 let drawnItems;
 let drawControl;
 let lastFormatted = '';
-const COORD_PRECISION = 8;
 
 initMap();
 
@@ -123,8 +122,8 @@ function formatGeometries() {
     if (layer instanceof L.Marker) {
       markers.push(formatMarker(layer));
     } else if (layer instanceof L.Polygon) {
-      const polygon = extractPolygon(layer);
-      if (polygon.length) polygons.push(polygon);
+      const polygon = formatPolygon(layer);
+      if (polygon) geometries.push(polygon);
     }
   });
 
@@ -150,9 +149,10 @@ function extractPolygon(layer) {
   return latLngs.map(({ lat, lng }) => [roundCoord(lng), roundCoord(lat)]);
 }
 
-function formatPolygonsForWs(polygons) {
-  const serialized = JSON.stringify(polygons, null, 2);
-  return `Polígonos (WS):\n=\n'${serialized}'`;
+  const closed = ensureClosedPolygon(latLngs);
+  const coordinates = closed.map(({ lat, lng }) => [Number(lng.toFixed(6)), Number(lat.toFixed(6))]);
+  const qlikFormatted = coordinates.map(([lng, lat]) => `${lng};${lat}`).join(' | ');
+  return `Polígono (Qlik): ${qlikFormatted}`;
 }
 
 function formatPolygonsForQlik(polygons) {
