@@ -132,6 +132,43 @@ button.ghost {
   gap: 4px;
 }
 
+.log-visual {
+  background: #111827;
+  color: #cbd5e1;
+  border: 1px solid #1f2937;
+}
+
+.log-entries {
+  max-height: 140px;
+  overflow-y: auto;
+  margin: 10px 0 0;
+  display: grid;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+
+.log-entry {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.log-entry.info {
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #bfdbfe;
+}
+
+.log-entry.error {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fecdd3;
+}
+
+.log-entry.warn {
+  border-color: rgba(234, 179, 8, 0.4);
+  color: #fef08a;
+}
+
 .panel-header {
   display: flex;
   align-items: center;

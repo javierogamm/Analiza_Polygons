@@ -1,36 +1,52 @@
-(function () {
-  'use strict';
+const output = document.getElementById('output');
+const copyBtn = document.getElementById('copy-btn');
+const resetBtn = document.getElementById('reset-btn');
+const status = document.getElementById('copy-status');
+const mapStatus = document.getElementById('map-status');
+const visualLog = document.getElementById('visual-log');
 
-  const output = document.getElementById('output');
-  const copyBtn = document.getElementById('copy-btn');
-  const resetBtn = document.getElementById('reset-btn');
-  const status = document.getElementById('copy-status');
-  const mapStatus = document.getElementById('map-status');
+let map;
+let drawnItems;
+let drawControl;
+let lastFormatted = '';
 
-  const map = L.map('map', { zoomControl: false }).setView([40.4168, -3.7038], 6);
+initMap();
 
-  const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+function initMap() {
+  removeExistingMap();
+
+  map = L.map('map', {
+    zoomControl: false,
+    preferCanvas: true,
+    worldCopyJump: true,
+  }).setView([40.4168, -3.7038], 6);
+
+  const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
+    minZoom: 3,
     attribution: '&copy; OpenStreetMap contributors',
+    errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
   });
 
   tiles
     .on('load', () => {
-      mapStatus.textContent = 'Mapa cargado';
-      mapStatus.style.color = '#16a34a';
+      setMapStatus('Mapa cargado', 'success');
+      logMessage('Teselas de OpenStreetMap cargadas correctamente.');
     })
-    .on('tileerror', () => {
-      mapStatus.textContent = 'Error al cargar mapas';
-      mapStatus.style.color = '#e11d48';
+    .on('tileerror', (event) => {
+      const { x, y, z } = event.coords || {};
+      setMapStatus('Error al cargar mapas', 'error');
+      logMessage(`Fallo cargando tesela z:${z} x:${x} y:${y}.`, 'error');
     })
     .addTo(map);
 
   L.control.zoom({ position: 'topright' }).addTo(map);
+  L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
 
-  const drawnItems = new L.FeatureGroup();
+  drawnItems = new L.FeatureGroup();
   map.addLayer(drawnItems);
 
-  const drawControl = new L.Control.Draw({
+  drawControl = new L.Control.Draw({
     position: 'topright',
     draw: {
       polyline: false,
@@ -67,78 +83,129 @@
   map.on('click', ({ latlng }) => {
     const marker = L.marker(latlng, { title: 'Punto rápido' });
     drawnItems.addLayer(marker);
+    logMessage(`Punto añadido en ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}.`);
     updateOutput();
   });
 
   map.on(L.Draw.Event.CREATED, ({ layer }) => {
     drawnItems.addLayer(layer);
+    const type = layer instanceof L.Polygon ? 'Polígono' : 'Marcador';
+    logMessage(`${type} creado y añadido al mapa.`);
     updateOutput();
   });
 
   map.on(L.Draw.Event.DELETED, () => {
+    logMessage('Capas eliminadas del mapa.', 'warn');
     updateOutput();
   });
+}
 
-  let lastFormatted = '';
-
-  function updateOutput() {
-    const formatted = formatGeometries();
-    output.textContent = formatted || 'Crea al menos un punto para ver sus coordenadas aquí.';
-    lastFormatted = formatted;
-    status.textContent = '';
+function removeExistingMap() {
+  if (map) {
+    map.off();
+    map.remove();
   }
+}
 
-  function formatGeometries() {
-    const geometries = [];
-    drawnItems.eachLayer((layer) => {
-      if (layer instanceof L.Marker) {
-        geometries.push(formatMarker(layer));
-      } else if (layer instanceof L.Polygon) {
-        geometries.push(formatPolygon(layer));
-      }
-    });
+function updateOutput() {
+  const formatted = formatGeometries();
+  output.textContent = formatted || 'Crea al menos un punto para ver sus coordenadas aquí.';
+  lastFormatted = formatted;
+  status.textContent = '';
+}
 
-    return geometries.join('\n\n');
-  }
+function formatGeometries() {
+  const polygons = [];
+  const markers = [];
 
-  function formatMarker(layer) {
-    const { lat, lng } = layer.getLatLng();
-    return `Punto: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`;
-  }
-
-  function formatPolygon(layer) {
-    const latLngs = layer.getLatLngs()[0] || [];
-    if (!latLngs.length) return '';
-
-    const closed = ensureClosedPolygon(latLngs);
-    const coordinates = closed.map(({ lat, lng }) => [Number(lng.toFixed(6)), Number(lat.toFixed(6))]);
-    return `Polígono: [[${coordinates.map(([lng, lat]) => `[${lng}, ${lat}]`).join(', ')}]]`;
-  }
-
-  function ensureClosedPolygon(points) {
-    if (points.length < 3) return points;
-    const first = points[0];
-    const last = points[points.length - 1];
-    const isClosed = first.lat === last.lat && first.lng === last.lng;
-    return isClosed ? points : [...points, first];
-  }
-
-  copyBtn.addEventListener('click', async () => {
-    if (!lastFormatted) return;
-    try {
-      await navigator.clipboard.writeText(lastFormatted);
-      status.textContent = 'Copiado';
-      status.style.color = '#16a34a';
-    } catch (error) {
-      status.textContent = 'No se pudo copiar';
-      status.style.color = '#e11d48';
+  drawnItems.eachLayer((layer) => {
+    if (layer instanceof L.Marker) {
+      markers.push(formatMarker(layer));
+    } else if (layer instanceof L.Polygon) {
+      const polygon = formatPolygon(layer);
+      if (polygon) geometries.push(polygon);
     }
   });
 
-  resetBtn.addEventListener('click', () => {
-    drawnItems.clearLayers();
-    updateOutput();
-  });
+  const blocks = [];
+  if (polygons.length) {
+    blocks.push(formatPolygonsForWs(polygons));
+    blocks.push(formatPolygonsForQlik(polygons));
+  }
+  if (markers.length) {
+    blocks.push(`Puntos:\n${markers.join('\n')}`);
+  }
 
+  return blocks.join('\n\n');
+}
+
+function formatMarker(layer) {
+  const { lat, lng } = layer.getLatLng();
+  return `Punto: [${roundCoord(lng)}, ${roundCoord(lat)}]`;
+}
+
+function extractPolygon(layer) {
+  const latLngs = layer.getLatLngs()[0] || [];
+  return latLngs.map(({ lat, lng }) => [roundCoord(lng), roundCoord(lat)]);
+}
+
+  const closed = ensureClosedPolygon(latLngs);
+  const coordinates = closed.map(({ lat, lng }) => [Number(lng.toFixed(6)), Number(lat.toFixed(6))]);
+  const qlikFormatted = coordinates.map(([lng, lat]) => `${lng};${lat}`).join(' | ');
+  return `Polígono (Qlik): ${qlikFormatted}`;
+}
+
+function formatPolygonsForQlik(polygons) {
+  const formatted = polygons
+    .map((coords, index) => {
+      const pairs = coords.map(([lng, lat]) => `${lng};${lat}`).join(' | ');
+      return polygons.length > 1 ? `Polígono ${index + 1}: ${pairs}` : `Polígono: ${pairs}`;
+    })
+    .join('\n');
+
+  return `Polígonos (Qlik):\n${formatted}`;
+}
+
+function roundCoord(value) {
+  return Number(value.toFixed(COORD_PRECISION));
+}
+
+copyBtn.addEventListener('click', async () => {
+  if (!lastFormatted) return;
+  try {
+    await navigator.clipboard.writeText(lastFormatted);
+    status.textContent = 'Copiado';
+    status.style.color = '#16a34a';
+    logMessage('Coordenadas copiadas al portapapeles.');
+  } catch (error) {
+    status.textContent = 'No se pudo copiar';
+    status.style.color = '#e11d48';
+    logMessage('El navegador no permitió copiar al portapapeles.', 'error');
+  }
+
+resetBtn.addEventListener('click', () => {
+  drawnItems.clearLayers();
   updateOutput();
-})();
+  logMessage('Mapa reiniciado: capas limpiadas.');
+});
+
+updateOutput();
+
+function setMapStatus(message, type) {
+  mapStatus.textContent = message;
+  mapStatus.style.color = type === 'success' ? '#16a34a' : type === 'error' ? '#e11d48' : '#2563eb';
+}
+
+function logMessage(message, level = 'info') {
+  if (!visualLog) return;
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${level}`;
+  const time = new Date().toLocaleTimeString();
+  entry.textContent = `${time} · ${message}`;
+  visualLog.prepend(entry);
+
+  const maxEntries = 10;
+  while (visualLog.children.length > maxEntries) {
+    visualLog.removeChild(visualLog.lastChild);
+  }
+}
