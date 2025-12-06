@@ -46,10 +46,6 @@
         <span id="map-status" class="status"></span>
       </div>
       <div id="map" aria-label="Mapa de dibujo"></div>
-      <div class="helper log-visual">
-        <p><strong>Registro de mapa</strong></p>
-        <div id="visual-log" class="log-entries" aria-live="polite"></div>
-      </div>
       <div class="helper">
         <p><strong>Cómo usarlo</strong></p>
         <ol>
@@ -73,8 +69,35 @@
         </div>
       </header>
       <pre id="output" aria-live="polite" class="output">Crea al menos un polígono para ver sus coordenadas aquí.</pre>
+      <div class="if-preview">
+        <p><strong>Vista previa IF</strong></p>
+        <pre id="if-preview" aria-live="polite" class="output soft">Genera una expresión IF desde el modal para verla aquí.</pre>
+      </div>
     </section>
   </main>
+
+  <div id="if-modal" class="if-modal" role="dialog" aria-modal="true" aria-labelledby="if-modal-title" aria-hidden="true">
+    <div class="if-modal__content">
+      <header class="if-modal__header">
+        <div>
+          <p class="eyebrow">Exportar IF</p>
+          <h3 id="if-modal-title">Configura la expresión IF para Qlik</h3>
+        </div>
+        <button id="if-modal-close" class="icon-btn" aria-label="Cerrar modal">×</button>
+      </header>
+      <form id="if-form" class="if-form">
+        <label class="field">
+          <span>Nombre del tesauro</span>
+          <input id="thesaurus-name" name="thesaurus" type="text" placeholder="Ej. campo_municipio" required />
+        </label>
+        <div id="polygon-values" class="polygon-values" aria-live="polite"></div>
+        <div class="if-form__actions">
+          <button type="button" id="if-cancel" class="ghost">Cancelar</button>
+          <button type="submit" class="primary">Generar y copiar IF</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

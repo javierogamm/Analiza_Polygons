@@ -43,3 +43,8 @@
 ## v1.8.0
 - Nuevo modo de exportación IF para Qlik que solicita el nombre del tesauro y un valor por polígono antes de generar los condicionales anidados.
 - Botón dedicado en el panel de exportación que copia la expresión IF manteniendo el mapa y el flujo anterior intactos.
+
+## v1.9.0
+- Modal completo para configurar el nombre del tesauro y los valores por polígono antes de exportar el IF de Qlik.
+- Vista previa persistente del IF generado debajo del panel de exportación para validar el resultado antes de pegarlo.
+- Eliminación del visor de registro del mapa y nuevo marcador de vértices estilo pin de mapas, más grande y visible para dibujar.

@@ -7,6 +7,13 @@ const copyQlikIfBtn = document.getElementById('copy-qlik-if-btn');
 const resetBtn = document.getElementById('reset-btn');
 const status = document.getElementById('copy-status');
 const mapStatus = document.getElementById('map-status');
+const ifPreview = document.getElementById('if-preview');
+const ifModal = document.getElementById('if-modal');
+const ifModalClose = document.getElementById('if-modal-close');
+const ifCancel = document.getElementById('if-cancel');
+const ifForm = document.getElementById('if-form');
+const thesaurusNameInput = document.getElementById('thesaurus-name');
+const polygonValuesContainer = document.getElementById('polygon-values');
 const visualLog = document.getElementById('visual-log');
 
 let map;
@@ -14,6 +21,7 @@ let drawnItems;
 let drawControl;
 let lastFormatted = '';
 let lastPolygons = [];
+let lastIfExpression = '';
 
 initMap();
 updateOutput();
@@ -106,12 +114,16 @@ function removeExistingMap() {
 function updateOutput() {
   const polygons = collectGeometries();
   lastPolygons = polygons;
+  if (!polygons.length) {
+    lastIfExpression = '';
+  }
 
   const formatted = formatGeometries(polygons);
   output.textContent = formatted || 'Crea al menos un polígono para ver sus coordenadas aquí.';
   lastFormatted = formatted;
   status.textContent = '';
   toggleQlikButtons(polygons.length > 0);
+  refreshIfPreview();
 }
 
 function formatGeometries(polygons) {
@@ -203,50 +215,53 @@ copyQlikIfBtn.addEventListener('click', async () => {
     return;
   }
 
-  const thesaurusName = prompt('Nombre del tesauro (campo)');
-  if (!thesaurusName || !thesaurusName.trim()) {
-    status.textContent = 'Nombre de tesauro requerido';
-    status.style.color = '#e11d48';
-    logMessage('Operación cancelada: falta el nombre del tesauro.', 'warn');
-    return;
-  }
-
-  const values = [];
-  for (let index = 0; index < lastPolygons.length; index += 1) {
-    const value = prompt(`Valor del tesauro para polígono ${index + 1}`);
-    if (value === null) {
-      status.textContent = 'Operación cancelada';
-      status.style.color = '#e11d48';
-      logMessage('Captura de valores cancelada por el usuario.', 'warn');
-      return;
-    }
-    if (!value.trim()) {
-      status.textContent = 'Cada polígono necesita un valor';
-      status.style.color = '#e11d48';
-      logMessage(`Falta el valor de tesauro para el polígono ${index + 1}.`, 'warn');
-      return;
-    }
-    values.push(value.trim());
-  }
-
-  const expression = buildConditionalIfExport(thesaurusName.trim(), lastPolygons, values);
-
-  try {
-    await navigator.clipboard.writeText(expression);
-    status.textContent = 'IF Qlik exportado';
-    status.style.color = '#16a34a';
-    logMessage('Expresión IF de Qlik copiada al portapapeles.');
-  } catch (error) {
-    status.textContent = 'No se pudo copiar';
-    status.style.color = '#e11d48';
-    logMessage('El navegador no permitió copiar el IF de Qlik.', 'error');
-  }
+  openIfModal();
 });
 
 resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
   updateOutput();
   logMessage('Mapa reiniciado: capas limpiadas.');
+});
+
+ifModalClose?.addEventListener('click', closeIfModal);
+ifCancel?.addEventListener('click', closeIfModal);
+
+ifModal?.addEventListener('click', (event) => {
+  if (event.target === ifModal) {
+    closeIfModal();
+  }
+});
+
+ifForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const thesaurusName = thesaurusNameInput?.value.trim();
+  if (!thesaurusName) {
+    status.textContent = 'Nombre de tesauro requerido';
+    status.style.color = '#e11d48';
+    logMessage('Falta el nombre del tesauro para generar el IF.', 'warn');
+    return;
+  }
+
+  const values = collectPolygonValues();
+  if (!values) return;
+
+  const expression = buildConditionalIfExport(thesaurusName, lastPolygons, values);
+
+  try {
+    await navigator.clipboard.writeText(expression);
+    status.textContent = 'IF Qlik exportado';
+    status.style.color = '#16a34a';
+    lastIfExpression = expression;
+    refreshIfPreview();
+    closeIfModal();
+    logMessage('Expresión IF de Qlik copiada al portapapeles.');
+  } catch (error) {
+    status.textContent = 'No se pudo copiar';
+    status.style.color = '#e11d48';
+    logMessage('El navegador no permitió copiar el IF de Qlik.', 'error');
+  }
 });
 
 function setMapStatus(message, type) {
@@ -304,6 +319,71 @@ function toggleQlikButtons(enabled) {
       ? 'Generar expresión IF en Qlik con valores por polígono'
       : 'Dibuja un polígono para habilitar la exportación IF';
   }
+}
+
+function openIfModal() {
+  renderPolygonValueInputs();
+  ifModal?.setAttribute('aria-hidden', 'false');
+  ifModal?.classList.add('open');
+  thesaurusNameInput?.focus();
+}
+
+function closeIfModal() {
+  ifModal?.setAttribute('aria-hidden', 'true');
+  ifModal?.classList.remove('open');
+  ifForm?.reset();
+}
+
+function renderPolygonValueInputs() {
+  if (!polygonValuesContainer) return;
+  polygonValuesContainer.innerHTML = '';
+
+  lastPolygons.forEach((_, index) => {
+    const wrapper = document.createElement('label');
+    wrapper.className = 'field';
+
+    const span = document.createElement('span');
+    span.textContent = `Valor para polígono ${index + 1}`;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.required = true;
+    input.name = `polygon-${index + 1}`;
+    input.placeholder = `Tesauro ${index + 1}`;
+
+    wrapper.appendChild(span);
+    wrapper.appendChild(input);
+    polygonValuesContainer.appendChild(wrapper);
+  });
+}
+
+function collectPolygonValues() {
+  if (!polygonValuesContainer) return null;
+  const inputs = Array.from(polygonValuesContainer.querySelectorAll('input'));
+
+  const values = [];
+  for (const input of inputs) {
+    const value = input.value.trim();
+    if (!value) {
+      status.textContent = 'Cada polígono necesita un valor';
+      status.style.color = '#e11d48';
+      logMessage(`Falta el valor de tesauro para ${input.name}.`, 'warn');
+      input.focus();
+      return null;
+    }
+    values.push(value);
+  }
+
+  return values;
+}
+
+function refreshIfPreview() {
+  if (!ifPreview) return;
+  if (!lastIfExpression || !lastPolygons.length) {
+    ifPreview.textContent = 'Genera una expresión IF desde el modal para verla aquí.';
+    return;
+  }
+  ifPreview.textContent = lastIfExpression;
 }
 
 function logMessage(message, level = 'info') {
