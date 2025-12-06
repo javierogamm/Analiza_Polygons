@@ -1,74 +1,53 @@
+const map = L.map('map', {
+  zoomControl: false,
+}).setView([40.4168, -3.7038], 6);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '&copy; OpenStreetMap contributors',
+}).addTo(map);
+
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+const drawnItems = new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+const drawControl = new L.Control.Draw({
+  position: 'topright',
+  draw: {
+    polyline: false,
+    rectangle: false,
+    circle: false,
+    marker: false,
+    circlemarker: false,
+    polygon: {
+      allowIntersection: false,
+      showArea: true,
+      drawError: {
+        color: '#e11d48',
+        message: 'Los vértices no pueden cruzarse.',
+      },
+      shapeOptions: {
+        color: '#2563eb',
+        weight: 3,
+      },
+    },
+  },
+  edit: {
+    featureGroup: drawnItems,
+    edit: false,
+    remove: false,
+  },
+});
+
+map.addControl(drawControl);
+
 const output = document.getElementById('output');
 const copyBtn = document.getElementById('copy-btn');
 const resetBtn = document.getElementById('reset-btn');
 const status = document.getElementById('copy-status');
 
 let lastFormatted = '';
-
-function initMap() {
-  if (!window.L) {
-    updateOutput('No se pudo cargar el mapa. Verifica tu conexión.');
-    return null;
-  }
-
-  const map = L.map('map', {
-    zoomControl: false,
-  }).setView([40.4168, -3.7038], 6);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors',
-  }).addTo(map);
-
-  L.control.zoom({ position: 'topright' }).addTo(map);
-
-  const drawnItems = new L.FeatureGroup();
-  map.addLayer(drawnItems);
-
-  const drawControl = new L.Control.Draw({
-    position: 'topright',
-    draw: {
-      polyline: false,
-      rectangle: false,
-      circle: false,
-      marker: false,
-      circlemarker: false,
-      polygon: {
-        allowIntersection: false,
-        showArea: true,
-        drawError: {
-          color: '#e11d48',
-          message: 'Los vértices no pueden cruzarse.',
-        },
-        shapeOptions: {
-          color: '#2563eb',
-          weight: 3,
-        },
-      },
-    },
-    edit: {
-      featureGroup: drawnItems,
-      edit: false,
-      remove: false,
-    },
-  });
-
-  map.addControl(drawControl);
-
-  map.on(L.Draw.Event.CREATED, ({ layer }) => {
-    drawnItems.clearLayers();
-    drawnItems.addLayer(layer);
-    const formatted = formatQlikCoordinates(layer);
-    updateOutput(formatted);
-  });
-
-  resetBtn.addEventListener('click', () => {
-    drawnItems.clearLayers();
-    updateOutput('');
-  });
-
-  return map;
-}
 
 function formatQlikCoordinates(layer) {
   const latLngs = layer.getLatLngs()[0] || [];
@@ -95,6 +74,13 @@ function updateOutput(text) {
   status.textContent = '';
 }
 
+map.on(L.Draw.Event.CREATED, ({ layer }) => {
+  drawnItems.clearLayers();
+  drawnItems.addLayer(layer);
+  const formatted = formatQlikCoordinates(layer);
+  updateOutput(formatted);
+});
+
 copyBtn.addEventListener('click', async () => {
   if (!lastFormatted) return;
   try {
@@ -107,7 +93,9 @@ copyBtn.addEventListener('click', async () => {
   }
 });
 
-window.addEventListener('DOMContentLoaded', () => {
-  initMap();
+resetBtn.addEventListener('click', () => {
+  drawnItems.clearLayers();
   updateOutput('');
 });
+
+updateOutput('');
