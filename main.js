@@ -3,6 +3,7 @@ const COORD_PRECISION = 6;
 const output = document.getElementById('output');
 const copyBtn = document.getElementById('copy-btn');
 const copyQlikBtn = document.getElementById('copy-qlik-btn');
+const copyQlikIfBtn = document.getElementById('copy-qlik-if-btn');
 const resetBtn = document.getElementById('reset-btn');
 const status = document.getElementById('copy-status');
 const mapStatus = document.getElementById('map-status');
@@ -110,7 +111,7 @@ function updateOutput() {
   output.textContent = formatted || 'Crea al menos un polígono para ver sus coordenadas aquí.';
   lastFormatted = formatted;
   status.textContent = '';
-  toggleQlikButton(polygons.length > 0);
+  toggleQlikButtons(polygons.length > 0);
 }
 
 function formatGeometries(polygons) {
@@ -194,6 +195,54 @@ copyQlikBtn.addEventListener('click', async () => {
   }
 });
 
+copyQlikIfBtn.addEventListener('click', async () => {
+  if (!lastPolygons.length) {
+    status.textContent = 'Añade un polígono primero';
+    status.style.color = '#e11d48';
+    logMessage('No hay polígonos para generar condicionales IF.', 'warn');
+    return;
+  }
+
+  const thesaurusName = prompt('Nombre del tesauro (campo)');
+  if (!thesaurusName || !thesaurusName.trim()) {
+    status.textContent = 'Nombre de tesauro requerido';
+    status.style.color = '#e11d48';
+    logMessage('Operación cancelada: falta el nombre del tesauro.', 'warn');
+    return;
+  }
+
+  const values = [];
+  for (let index = 0; index < lastPolygons.length; index += 1) {
+    const value = prompt(`Valor del tesauro para polígono ${index + 1}`);
+    if (value === null) {
+      status.textContent = 'Operación cancelada';
+      status.style.color = '#e11d48';
+      logMessage('Captura de valores cancelada por el usuario.', 'warn');
+      return;
+    }
+    if (!value.trim()) {
+      status.textContent = 'Cada polígono necesita un valor';
+      status.style.color = '#e11d48';
+      logMessage(`Falta el valor de tesauro para el polígono ${index + 1}.`, 'warn');
+      return;
+    }
+    values.push(value.trim());
+  }
+
+  const expression = buildConditionalIfExport(thesaurusName.trim(), lastPolygons, values);
+
+  try {
+    await navigator.clipboard.writeText(expression);
+    status.textContent = 'IF Qlik exportado';
+    status.style.color = '#16a34a';
+    logMessage('Expresión IF de Qlik copiada al portapapeles.');
+  } catch (error) {
+    status.textContent = 'No se pudo copiar';
+    status.style.color = '#e11d48';
+    logMessage('El navegador no permitió copiar el IF de Qlik.', 'error');
+  }
+});
+
 resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
   updateOutput();
@@ -226,10 +275,35 @@ function buildPolygonString(coords, options = {}) {
   return `'${wrapped}'`;
 }
 
-function toggleQlikButton(enabled) {
-  if (!copyQlikBtn) return;
-  copyQlikBtn.disabled = !enabled;
-  copyQlikBtn.title = enabled ? 'Copiar polígonos en formato Qlik' : 'Dibuja un polígono para habilitar la copia Qlik';
+function buildConditionalIfExport(thesaurusName, polygons, values) {
+  if (!polygons.length || polygons.length !== values.length) return '';
+  const pretty = true;
+
+  const clauses = polygons.map((coords, index) => {
+    const serialized = buildPolygonString(coords, { pretty });
+    return `IF(${thesaurusName} ='${values[index]}', ${serialized}`;
+  });
+
+  const closing = ')'.repeat(clauses.length);
+  const joined = clauses
+    .map((clause, index) => `${clause}${index < clauses.length - 1 ? ',' : ''}`)
+    .join('\n');
+
+  return `${joined}${closing}`;
+}
+
+function toggleQlikButtons(enabled) {
+  if (copyQlikBtn) {
+    copyQlikBtn.disabled = !enabled;
+    copyQlikBtn.title = enabled ? 'Copiar polígonos en formato Qlik' : 'Dibuja un polígono para habilitar la copia Qlik';
+  }
+
+  if (copyQlikIfBtn) {
+    copyQlikIfBtn.disabled = !enabled;
+    copyQlikIfBtn.title = enabled
+      ? 'Generar expresión IF en Qlik con valores por polígono'
+      : 'Dibuja un polígono para habilitar la exportación IF';
+  }
 }
 
 function logMessage(message, level = 'info') {

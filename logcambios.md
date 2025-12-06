@@ -39,3 +39,7 @@
 - Limitación de la edición a polígonos: se desactivaron los puntos rápidos y marcadores para que cada clic pertenezca a un polígono.
 - Exportación numerada: cada polígono se muestra y copia con su etiqueta "Polígono N" y coordenadas entrecomilladas de forma independiente.
 - Textos de ayuda y botones actualizados para reflejar el flujo centrado en polígonos y facilitar la exportación.
+
+## v1.8.0
+- Nuevo modo de exportación IF para Qlik que solicita el nombre del tesauro y un valor por polígono antes de generar los condicionales anidados.
+- Botón dedicado en el panel de exportación que copia la expresión IF manteniendo el mapa y el flujo anterior intactos.
