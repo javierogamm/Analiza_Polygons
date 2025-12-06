@@ -20,26 +20,33 @@
   <header class="hero">
     <div>
       <p class="eyebrow">Analiza Polygons</p>
-      <h1>Transforma dibujos en polígonos listos para Qlik</h1>
+      <h1>Mapa real de OpenStreetMap listo para capturar coordenadas</h1>
       <p class="lead">
-        Dibuja sobre el mapa, genera las coordenadas en formato longitud/latitud y cópialas con un clic.
+        Dibuja puntos o polígonos directamente sobre un mapa embebido y copia las coordenadas con el formato que prefieras.
       </p>
       <div class="cta-row">
-        <button id="copy-btn" class="primary">Copiar formato Qlik</button>
-        <button id="reset-btn" class="ghost">Limpiar dibujo</button>
+        <button id="copy-btn" class="primary">Copiar coordenadas</button>
+        <button id="reset-btn" class="ghost">Limpiar mapa</button>
       </div>
     </div>
   </header>
 
   <main class="content">
     <section class="panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Mapa base</p>
+          <h2>Dibuja sobre OpenStreetMap</h2>
+        </div>
+        <span id="map-status" class="status"></span>
+      </div>
       <div id="map" aria-label="Mapa de dibujo"></div>
       <div class="helper">
         <p><strong>Cómo usarlo</strong></p>
         <ol>
-          <li>Dibuja un polígono con la herramienta del mapa.</li>
-          <li>Al finalizar, revisa las coordenadas generadas.</li>
-          <li>Usa el botón para copiar el formato que acepta Qlik.</li>
+          <li>Haz clic en el mapa para crear puntos rápidos, o usa los controles para polígonos y marcadores.</li>
+          <li>El panel inferior lista todas las geometrías con sus coordenadas.</li>
+          <li>Copia el resultado y pégalo en tu flujo de trabajo.</li>
         </ol>
       </div>
     </section>
@@ -47,12 +54,12 @@
     <section class="panel">
       <header class="panel-header">
         <div>
-          <p class="eyebrow">Formato Qlik</p>
+          <p class="eyebrow">Exportación</p>
           <h2>Coordenadas generadas</h2>
         </div>
         <span id="copy-status" class="status"></span>
       </header>
-      <pre id="output" aria-live="polite" class="output">Dibuja un polígono para ver aquí las coordenadas.</pre>
+      <pre id="output" aria-live="polite" class="output">Crea al menos un punto para ver sus coordenadas aquí.</pre>
     </section>
   </main>
 

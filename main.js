@@ -1,11 +1,26 @@
-const map = L.map('map', {
-  zoomControl: false,
-}).setView([40.4168, -3.7038], 6);
+const output = document.getElementById('output');
+const copyBtn = document.getElementById('copy-btn');
+const resetBtn = document.getElementById('reset-btn');
+const status = document.getElementById('copy-status');
+const mapStatus = document.getElementById('map-status');
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 18,
+const map = L.map('map', { zoomControl: false }).setView([40.4168, -3.7038], 6);
+
+const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
   attribution: '&copy; OpenStreetMap contributors',
-}).addTo(map);
+});
+
+tiles
+  .on('load', () => {
+    mapStatus.textContent = 'Mapa cargado';
+    mapStatus.style.color = '#16a34a';
+  })
+  .on('tileerror', () => {
+    mapStatus.textContent = 'Error al cargar mapas';
+    mapStatus.style.color = '#e11d48';
+  })
+  .addTo(map);
 
 L.control.zoom({ position: 'topright' }).addTo(map);
 
@@ -18,8 +33,11 @@ const drawControl = new L.Control.Draw({
     polyline: false,
     rectangle: false,
     circle: false,
-    marker: false,
     circlemarker: false,
+    marker: {
+      repeatMode: true,
+      title: 'Añadir punto',
+    },
     polygon: {
       allowIntersection: false,
       showArea: true,
@@ -36,28 +54,62 @@ const drawControl = new L.Control.Draw({
   edit: {
     featureGroup: drawnItems,
     edit: false,
-    remove: false,
+    remove: true,
   },
 });
 
 map.addControl(drawControl);
+map.whenReady(() => map.invalidateSize());
 
-const output = document.getElementById('output');
-const copyBtn = document.getElementById('copy-btn');
-const resetBtn = document.getElementById('reset-btn');
-const status = document.getElementById('copy-status');
+map.on('click', ({ latlng }) => {
+  const marker = L.marker(latlng, { title: 'Punto rápido' });
+  drawnItems.addLayer(marker);
+  updateOutput();
+});
+
+map.on(L.Draw.Event.CREATED, ({ layer }) => {
+  drawnItems.addLayer(layer);
+  updateOutput();
+});
+
+map.on(L.Draw.Event.DELETED, () => {
+  updateOutput();
+});
 
 let lastFormatted = '';
 
-function formatQlikCoordinates(layer) {
+function updateOutput() {
+  const formatted = formatGeometries();
+  output.textContent = formatted || 'Crea al menos un punto para ver sus coordenadas aquí.';
+  lastFormatted = formatted;
+  status.textContent = '';
+}
+
+function formatGeometries() {
+  const geometries = [];
+  drawnItems.eachLayer((layer) => {
+    if (layer instanceof L.Marker) {
+      geometries.push(formatMarker(layer));
+    } else if (layer instanceof L.Polygon) {
+      geometries.push(formatPolygon(layer));
+    }
+  });
+
+  return geometries.join('\n\n');
+}
+
+function formatMarker(layer) {
+  const { lat, lng } = layer.getLatLng();
+  return `Punto: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`;
+}
+
+function formatPolygon(layer) {
   const latLngs = layer.getLatLngs()[0] || [];
   if (!latLngs.length) return '';
 
-  const withClosure = ensureClosedPolygon(latLngs);
-  const coordinates = withClosure.map(({ lat, lng }) => [Number(lng.toFixed(10)), Number(lat.toFixed(10))]);
-
-  const formatted = `=[[${coordinates.map(([lng, lat]) => `[${lng}, ${lat}]`).join(',\n   ')}]]`;
-  return formatted;
+  const closed = ensureClosedPolygon(latLngs);
+  const coordinates = closed.map(({ lat, lng }) => [Number(lng.toFixed(6)), Number(lat.toFixed(6))]);
+  return `Polígono: [[${coordinates.map(([lng, lat]) => `[${lng}, ${lat}]`).join(', ')}]]`;
 }
 
 function ensureClosedPolygon(points) {
@@ -67,19 +119,6 @@ function ensureClosedPolygon(points) {
   const isClosed = first.lat === last.lat && first.lng === last.lng;
   return isClosed ? points : [...points, first];
 }
-
-function updateOutput(text) {
-  output.textContent = text || 'Dibuja un polígono para ver aquí las coordenadas.';
-  lastFormatted = text;
-  status.textContent = '';
-}
-
-map.on(L.Draw.Event.CREATED, ({ layer }) => {
-  drawnItems.clearLayers();
-  drawnItems.addLayer(layer);
-  const formatted = formatQlikCoordinates(layer);
-  updateOutput(formatted);
-});
 
 copyBtn.addEventListener('click', async () => {
   if (!lastFormatted) return;
@@ -95,7 +134,7 @@ copyBtn.addEventListener('click', async () => {
 
 resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
-  updateOutput('');
+  updateOutput();
 });
 
-updateOutput('');
+updateOutput();
