@@ -115,27 +115,39 @@ function updateOutput() {
 }
 
 function formatGeometries() {
-  const geometries = [];
+  const polygons = [];
+  const markers = [];
+
   drawnItems.eachLayer((layer) => {
     if (layer instanceof L.Marker) {
-      geometries.push(formatMarker(layer));
+      markers.push(formatMarker(layer));
     } else if (layer instanceof L.Polygon) {
       const polygon = formatPolygon(layer);
       if (polygon) geometries.push(polygon);
     }
   });
 
-  return geometries.join('\n\n');
+  const blocks = [];
+  if (polygons.length) {
+    blocks.push(formatPolygonsForWs(polygons));
+    blocks.push(formatPolygonsForQlik(polygons));
+  }
+  if (markers.length) {
+    blocks.push(`Puntos:\n${markers.join('\n')}`);
+  }
+
+  return blocks.join('\n\n');
 }
 
 function formatMarker(layer) {
   const { lat, lng } = layer.getLatLng();
-  return `Punto: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`;
+  return `Punto: [${roundCoord(lng)}, ${roundCoord(lat)}]`;
 }
 
-function formatPolygon(layer) {
+function extractPolygon(layer) {
   const latLngs = layer.getLatLngs()[0] || [];
-  if (!latLngs.length) return '';
+  return latLngs.map(({ lat, lng }) => [roundCoord(lng), roundCoord(lat)]);
+}
 
   const closed = ensureClosedPolygon(latLngs);
   const coordinates = closed.map(({ lat, lng }) => [Number(lng.toFixed(6)), Number(lat.toFixed(6))]);
@@ -143,12 +155,19 @@ function formatPolygon(layer) {
   return `Polígono (Qlik): ${qlikFormatted}`;
 }
 
-function ensureClosedPolygon(points) {
-  if (points.length < 3) return points;
-  const first = points[0];
-  const last = points[points.length - 1];
-  const isClosed = first.lat === last.lat && first.lng === last.lng;
-  return isClosed ? points : [...points, first];
+function formatPolygonsForQlik(polygons) {
+  const formatted = polygons
+    .map((coords, index) => {
+      const pairs = coords.map(([lng, lat]) => `${lng};${lat}`).join(' | ');
+      return polygons.length > 1 ? `Polígono ${index + 1}: ${pairs}` : `Polígono: ${pairs}`;
+    })
+    .join('\n');
+
+  return `Polígonos (Qlik):\n${formatted}`;
+}
+
+function roundCoord(value) {
+  return Number(value.toFixed(COORD_PRECISION));
 }
 
 copyBtn.addEventListener('click', async () => {
