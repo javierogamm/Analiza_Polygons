@@ -34,3 +34,8 @@
 ## v1.6.0
 - Reubicación del botón de copia en modo Qlik al encabezado del panel de exportación para distinguirlo claramente del botón de copia estándar.
 - Estilo destacado para el botón de Qlik que resalta su propósito y mantiene la interfaz ordenada.
+
+## v1.7.0
+- Limitación de la edición a polígonos: se desactivaron los puntos rápidos y marcadores para que cada clic pertenezca a un polígono.
+- Exportación numerada: cada polígono se muestra y copia con su etiqueta "Polígono N" y coordenadas entrecomilladas de forma independiente.
+- Textos de ayuda y botones actualizados para reflejar el flujo centrado en polígonos y facilitar la exportación.
