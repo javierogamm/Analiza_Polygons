@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analiza Polygons</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2atLYeMzdgU0uZbP7Hf8QUpPG9UibXo9p3p3g1Y="
+    crossorigin=""
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Analiza Polygons</p>
+      <h1>Transforma dibujos en polígonos listos para Qlik</h1>
+      <p class="lead">
+        Dibuja sobre el mapa, genera las coordenadas en formato longitud/latitud y cópialas con un clic.
+      </p>
+      <div class="cta-row">
+        <button id="copy-btn" class="primary">Copiar formato Qlik</button>
+        <button id="reset-btn" class="ghost">Limpiar dibujo</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="panel">
+      <div id="map" aria-label="Mapa de dibujo"></div>
+      <div class="helper">
+        <p><strong>Cómo usarlo</strong></p>
+        <ol>
+          <li>Dibuja un polígono con la herramienta del mapa.</li>
+          <li>Al finalizar, revisa las coordenadas generadas.</li>
+          <li>Usa el botón para copiar el formato que acepta Qlik.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header class="panel-header">
+        <div>
+          <p class="eyebrow">Formato Qlik</p>
+          <h2>Coordenadas generadas</h2>
+        </div>
+        <span id="copy-status" class="status"></span>
+      </header>
+      <pre id="output" aria-live="polite" class="output">Dibuja un polígono para ver aquí las coordenadas.</pre>
+    </section>
+  </main>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1j7kGStb6QqH1jyfFSt8A1iXRu2EOw3kM3Xt5C3A="
+    crossorigin=""
+  ></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
