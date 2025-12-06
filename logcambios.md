@@ -26,3 +26,7 @@
 - Nuevo botón dedicado para copiar polígonos en formato Qlik con la expresión exacta `=\n'[[]]'` y separadores por comas.
 - Generación automática de la cadena Qlik con coordenadas `longitud,latitud` cerradas, lista para pegar.
 - El botón se desactiva sin polígonos para evitar copiar datos incompletos y mantiene el registro de acciones del mapa.
+
+## v1.5.0
+- Exportación simplificada: el panel y las copias ahora devuelven únicamente la cadena de coordenadas entre corchetes, con longitud primero y sin textos adicionales.
+- La expresión Qlik se formatea en varias líneas para pegar directamente en el destino con la estructura `=\n'[[[lng, lat], ...]]'`.

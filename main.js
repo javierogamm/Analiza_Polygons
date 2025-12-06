@@ -124,16 +124,14 @@ function updateOutput() {
 }
 
 function formatGeometries(polygons, markers) {
-  const blocks = [];
   if (polygons.length) {
-    blocks.push(formatPolygonsForWs(polygons));
-    blocks.push(formatPolygonsForQlik(polygons));
+    return buildQlikExpression(polygons, { pretty: true });
   }
   if (markers.length) {
-    blocks.push(`Puntos:\n${markers.join('\n')}`);
+    return `Puntos:\n${markers.join('\n')}`;
   }
 
-  return blocks.join('\n\n');
+  return '';
 }
 
 function collectGeometries() {
@@ -173,28 +171,6 @@ function ensureClosedPolygon(latLngs) {
   return closed;
 }
 
-function formatPolygonsForWs(polygons) {
-  const formatted = polygons
-    .map((coords, index) => {
-      const pairs = coords.map(([lng, lat]) => `[${lng}, ${lat}]`).join(', ');
-      return polygons.length > 1 ? `Polígono ${index + 1}: ${pairs}` : `Polígono: ${pairs}`;
-    })
-    .join('\n');
-
-  return `Polígonos (Lng,Lat):\n${formatted}`;
-}
-
-function formatPolygonsForQlik(polygons) {
-  const formatted = polygons
-    .map((coords, index) => {
-      const pairs = coords.map(([lng, lat]) => `${lng};${lat}`).join(' | ');
-      return polygons.length > 1 ? `Polígono ${index + 1}: ${pairs}` : `Polígono: ${pairs}`;
-    })
-    .join('\n');
-
-  return `Polígonos (Qlik):\n${formatted}`;
-}
-
 function roundCoord(value) {
   return Number(value.toFixed(COORD_PRECISION));
 }
@@ -214,7 +190,7 @@ copyBtn.addEventListener('click', async () => {
 });
 
 copyQlikBtn.addEventListener('click', async () => {
-  const expression = buildQlikExpression(lastPolygons);
+  const expression = buildQlikExpression(lastPolygons, { pretty: true });
   if (!expression) {
     status.textContent = 'Añade un polígono primero';
     status.style.color = '#e11d48';
@@ -245,15 +221,18 @@ function setMapStatus(message, type) {
   mapStatus.style.color = type === 'success' ? '#16a34a' : type === 'error' ? '#e11d48' : '#2563eb';
 }
 
-function buildQlikExpression(polygons) {
+function buildQlikExpression(polygons, options = {}) {
+  const { pretty = false } = options;
   if (!polygons.length) return '';
 
   const formattedPolygons = polygons.map((coords) => {
-    const pairs = coords.map(([lng, lat]) => `[${lng},${lat}]`).join(',');
-    return `[${pairs}]`;
+    const separator = pretty ? ',\n   ' : ',';
+    const pairs = coords.map(([lng, lat]) => `[${lng}, ${lat}]`).join(separator);
+    return `[[${pairs}]]`;
   });
 
-  return `=\n'[${formattedPolygons.join(',')}]'`;
+  const polygonSeparator = pretty ? ',\n' : ',';
+  return `=\n'[${formattedPolygons.join(polygonSeparator)}]'`;
 }
 
 function toggleQlikButton(enabled) {
