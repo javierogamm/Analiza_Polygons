@@ -30,3 +30,7 @@
 ## v1.5.0
 - Exportación simplificada: el panel y las copias ahora devuelven únicamente la cadena de coordenadas entre corchetes, con longitud primero y sin textos adicionales.
 - La expresión Qlik se formatea en varias líneas para pegar directamente en el destino con la estructura `=\n'[[[lng, lat], ...]]'`.
+
+## v1.6.0
+- Reubicación del botón de copia en modo Qlik al encabezado del panel de exportación para distinguirlo claramente del botón de copia estándar.
+- Estilo destacado para el botón de Qlik que resalta su propósito y mantiene la interfaz ordenada.
