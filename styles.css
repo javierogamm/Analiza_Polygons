@@ -81,6 +81,12 @@ button:active {
   transform: translateY(1px);
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 button.primary {
   background: var(--ink-900);
   color: white;
