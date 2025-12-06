@@ -1,3 +1,5 @@
+const COORD_PRECISION = 6;
+
 const output = document.getElementById('output');
 const copyBtn = document.getElementById('copy-btn');
 const resetBtn = document.getElementById('reset-btn');
@@ -11,6 +13,7 @@ let drawControl;
 let lastFormatted = '';
 
 initMap();
+updateOutput();
 
 function initMap() {
   removeExistingMap();
@@ -122,8 +125,7 @@ function formatGeometries() {
     if (layer instanceof L.Marker) {
       markers.push(formatMarker(layer));
     } else if (layer instanceof L.Polygon) {
-      const polygon = formatPolygon(layer);
-      if (polygon) geometries.push(polygon);
+      polygons.push(formatPolygon(layer));
     }
   });
 
@@ -144,15 +146,32 @@ function formatMarker(layer) {
   return `Punto: [${roundCoord(lng)}, ${roundCoord(lat)}]`;
 }
 
-function extractPolygon(layer) {
+function formatPolygon(layer) {
   const latLngs = layer.getLatLngs()[0] || [];
-  return latLngs.map(({ lat, lng }) => [roundCoord(lng), roundCoord(lat)]);
+  const closed = ensureClosedPolygon(latLngs);
+  return closed.map(({ lat, lng }) => [roundCoord(lng), roundCoord(lat)]);
 }
 
-  const closed = ensureClosedPolygon(latLngs);
-  const coordinates = closed.map(({ lat, lng }) => [Number(lng.toFixed(6)), Number(lat.toFixed(6))]);
-  const qlikFormatted = coordinates.map(([lng, lat]) => `${lng};${lat}`).join(' | ');
-  return `Polígono (Qlik): ${qlikFormatted}`;
+function ensureClosedPolygon(latLngs) {
+  if (!latLngs.length) return [];
+  const closed = [...latLngs];
+  const first = latLngs[0];
+  const last = latLngs[latLngs.length - 1];
+  if (first.lat !== last.lat || first.lng !== last.lng) {
+    closed.push(first);
+  }
+  return closed;
+}
+
+function formatPolygonsForWs(polygons) {
+  const formatted = polygons
+    .map((coords, index) => {
+      const pairs = coords.map(([lng, lat]) => `[${lng}, ${lat}]`).join(', ');
+      return polygons.length > 1 ? `Polígono ${index + 1}: ${pairs}` : `Polígono: ${pairs}`;
+    })
+    .join('\n');
+
+  return `Polígonos (Lng,Lat):\n${formatted}`;
 }
 
 function formatPolygonsForQlik(polygons) {
@@ -182,14 +201,13 @@ copyBtn.addEventListener('click', async () => {
     status.style.color = '#e11d48';
     logMessage('El navegador no permitió copiar al portapapeles.', 'error');
   }
+});
 
 resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
   updateOutput();
   logMessage('Mapa reiniciado: capas limpiadas.');
 });
-
-updateOutput();
 
 function setMapStatus(message, type) {
   mapStatus.textContent = message;
