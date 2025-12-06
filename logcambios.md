@@ -16,3 +16,8 @@
 - Sustitución completa de la estrategia de renderizado del mapa con re inicialización segura y control de escala para mejorar la estabilidad en OpenStreetMap.
 - Formato de salida específico para Qlik con coordenadas `lon;lat` listas para pegar.
 - Registro visual en la interfaz para depurar estados del mapa, carga de teselas y acciones sobre las geometrías.
+
+## v1.3.0
+- Reescritura del script principal para eliminar errores de sintaxis y restaurar la carga del mapa de OpenStreetMap.
+- Consolidación de los formateadores de coordenadas para polígonos y puntos con cierre automático de polígonos.
+- Mejora de los mensajes de registro para depurar la carga de teselas y las acciones sobre el mapa.
