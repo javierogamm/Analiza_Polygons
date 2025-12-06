@@ -58,10 +58,7 @@ function initMap() {
       rectangle: false,
       circle: false,
       circlemarker: false,
-      marker: {
-        repeatMode: true,
-        title: 'Añadir punto',
-      },
+      marker: false,
       polygon: {
         allowIntersection: false,
         showArea: true,
@@ -85,16 +82,9 @@ function initMap() {
   map.addControl(drawControl);
   map.whenReady(() => map.invalidateSize());
 
-  map.on('click', ({ latlng }) => {
-    const marker = L.marker(latlng, { title: 'Punto rápido' });
-    drawnItems.addLayer(marker);
-    logMessage(`Punto añadido en ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}.`);
-    updateOutput();
-  });
-
   map.on(L.Draw.Event.CREATED, ({ layer }) => {
     drawnItems.addLayer(layer);
-    const type = layer instanceof L.Polygon ? 'Polígono' : 'Marcador';
+    const type = layer instanceof L.Polygon ? 'Polígono' : 'Capa';
     logMessage(`${type} creado y añadido al mapa.`);
     updateOutput();
   });
@@ -113,45 +103,39 @@ function removeExistingMap() {
 }
 
 function updateOutput() {
-  const { polygons, markers } = collectGeometries();
+  const polygons = collectGeometries();
   lastPolygons = polygons;
 
-  const formatted = formatGeometries(polygons, markers);
-  output.textContent = formatted || 'Crea al menos un punto para ver sus coordenadas aquí.';
+  const formatted = formatGeometries(polygons);
+  output.textContent = formatted || 'Crea al menos un polígono para ver sus coordenadas aquí.';
   lastFormatted = formatted;
   status.textContent = '';
   toggleQlikButton(polygons.length > 0);
 }
 
-function formatGeometries(polygons, markers) {
-  if (polygons.length) {
-    return buildQlikExpression(polygons, { pretty: true });
-  }
-  if (markers.length) {
-    return `Puntos:\n${markers.join('\n')}`;
-  }
+function formatGeometries(polygons) {
+  if (!polygons.length) return '';
+  const pretty = true;
 
-  return '';
+  return polygons
+    .map((coords, index) => {
+      const polygonLabel = `Polígono ${index + 1}`;
+      const serialized = buildPolygonString(coords, { pretty });
+      return `${polygonLabel}:\n${serialized}`;
+    })
+    .join('\n\n');
 }
 
 function collectGeometries() {
   const polygons = [];
-  const markers = [];
 
   drawnItems.eachLayer((layer) => {
-    if (layer instanceof L.Marker) {
-      markers.push(formatMarker(layer));
-    } else if (layer instanceof L.Polygon) {
+    if (layer instanceof L.Polygon) {
       polygons.push(formatPolygon(layer));
     }
   });
 
-  return { polygons, markers };
-}
-
-function formatMarker(layer) {
-  const { lat, lng } = layer.getLatLng();
-  return `Punto: [${roundCoord(lng)}, ${roundCoord(lat)}]`;
+  return polygons;
 }
 
 function formatPolygon(layer) {
@@ -190,7 +174,7 @@ copyBtn.addEventListener('click', async () => {
 });
 
 copyQlikBtn.addEventListener('click', async () => {
-  const expression = buildQlikExpression(lastPolygons, { pretty: true });
+  const expression = buildPolygonsExport(lastPolygons);
   if (!expression) {
     status.textContent = 'Añade un polígono primero';
     status.style.color = '#e11d48';
@@ -200,9 +184,9 @@ copyQlikBtn.addEventListener('click', async () => {
 
   try {
     await navigator.clipboard.writeText(expression);
-    status.textContent = 'Qlik listo';
+    status.textContent = 'Exportado';
     status.style.color = '#16a34a';
-    logMessage('Polígono copiado en formato Qlik con corchetes y comas.');
+    logMessage('Polígonos copiados en formato listo para Qlik.');
   } catch (error) {
     status.textContent = 'No se pudo copiar';
     status.style.color = '#e11d48';
@@ -221,18 +205,25 @@ function setMapStatus(message, type) {
   mapStatus.style.color = type === 'success' ? '#16a34a' : type === 'error' ? '#e11d48' : '#2563eb';
 }
 
-function buildQlikExpression(polygons, options = {}) {
-  const { pretty = false } = options;
+function buildPolygonsExport(polygons) {
+  const pretty = true;
   if (!polygons.length) return '';
 
-  const formattedPolygons = polygons.map((coords) => {
-    const separator = pretty ? ',\n   ' : ',';
-    const pairs = coords.map(([lng, lat]) => `[${lng}, ${lat}]`).join(separator);
-    return `[[${pairs}]]`;
-  });
+  return polygons
+    .map((coords, index) => {
+      const label = `Polígono ${index + 1}`;
+      const serialized = buildPolygonString(coords, { pretty });
+      return `${label}: ${serialized}`;
+    })
+    .join('\n');
+}
 
-  const polygonSeparator = pretty ? ',\n' : ',';
-  return `=\n'[${formattedPolygons.join(polygonSeparator)}]'`;
+function buildPolygonString(coords, options = {}) {
+  const { pretty = false } = options;
+  const separator = pretty ? ',\n  ' : ',';
+  const pairs = coords.map(([lng, lat]) => `[${lng}, ${lat}]`).join(separator);
+  const wrapped = `[[${pairs}]]`;
+  return `'${wrapped}'`;
 }
 
 function toggleQlikButton(enabled) {

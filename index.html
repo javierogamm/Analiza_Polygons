@@ -27,10 +27,10 @@
       <p class="eyebrow">Analiza Polygons</p>
       <h1>Mapa real de OpenStreetMap listo para capturar coordenadas</h1>
       <p class="lead">
-        Dibuja puntos o polígonos directamente sobre un mapa embebido y copia las coordenadas con el formato que prefieras.
+        Dibuja polígonos directamente sobre un mapa embebido y copia las coordenadas con el formato que prefieras.
       </p>
       <div class="cta-row">
-        <button id="copy-btn" class="primary">Copiar coordenadas</button>
+        <button id="copy-btn" class="primary">Exportar polígonos</button>
         <button id="reset-btn" class="ghost">Limpiar mapa</button>
       </div>
     </div>
@@ -53,8 +53,8 @@
       <div class="helper">
         <p><strong>Cómo usarlo</strong></p>
         <ol>
-          <li>Haz clic en el mapa para crear puntos rápidos, o usa los controles para polígonos y marcadores.</li>
-          <li>El panel inferior lista todas las geometrías con sus coordenadas.</li>
+          <li>Selecciona la herramienta de polígono y haz clic en el mapa para definir cada vértice.</li>
+          <li>El panel inferior lista cada polígono numerado con sus coordenadas.</li>
           <li>Copia el resultado y pégalo en tu flujo de trabajo.</li>
         </ol>
       </div>
@@ -71,7 +71,7 @@
           <span id="copy-status" class="status"></span>
         </div>
       </header>
-      <pre id="output" aria-live="polite" class="output">Crea al menos un punto para ver sus coordenadas aquí.</pre>
+      <pre id="output" aria-live="polite" class="output">Crea al menos un polígono para ver sus coordenadas aquí.</pre>
     </section>
   </main>
 
