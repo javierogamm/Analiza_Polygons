@@ -1,7 +1,8 @@
 :root {
   color-scheme: light;
   --ink-900: #0f172a;
-  --ink-600: #1f2937;
+  --ink-700: #1f2937;
+  --ink-600: #334155;
   --ink-400: #6b7280;
   --ink-200: #e5e7eb;
   --accent: #2563eb;
@@ -45,6 +46,11 @@ h1 {
   margin: 0;
   color: var(--ink-900);
   font-size: clamp(2.1rem, 4vw, 3rem);
+}
+
+h2 {
+  margin: 0;
+  color: var(--ink-900);
 }
 
 .lead {
@@ -105,9 +111,11 @@ button.ghost {
 
 #map {
   width: 100%;
-  height: 420px;
+  min-height: 520px;
+  height: 60vh;
   border-radius: calc(var(--radius) - 4px);
   overflow: hidden;
+  border: 1px solid var(--ink-200);
 }
 
 .helper {
@@ -153,6 +161,16 @@ button.ghost {
   outline: none;
 }
 
+.leaflet-bar a {
+  background: #ffffff;
+  border: none;
+  color: var(--ink-700);
+}
+
+.leaflet-bar a:hover {
+  background: #f3f4f6;
+}
+
 @media (max-width: 720px) {
   .hero {
     padding: 28px 18px;
@@ -160,5 +178,9 @@ button.ghost {
 
   .content {
     padding: 0 18px 36px;
+  }
+
+  #map {
+    min-height: 360px;
   }
 }
