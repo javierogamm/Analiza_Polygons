@@ -16,7 +16,3 @@
 - Sustitución completa de la estrategia de renderizado del mapa con re inicialización segura y control de escala para mejorar la estabilidad en OpenStreetMap.
 - Formato de salida específico para Qlik con coordenadas `lon;lat` listas para pegar.
 - Registro visual en la interfaz para depurar estados del mapa, carga de teselas y acciones sobre las geometrías.
-
-## v1.2.1
-- Correcciones de integridad (SRI) para cargar correctamente los recursos de Leaflet desde CDN.
-- Nuevo favicon inline para eliminar el error 404 en navegadores.
