@@ -182,7 +182,6 @@ copyBtn.addEventListener('click', async () => {
     status.style.color = '#e11d48';
     logMessage('El navegador no permitió copiar al portapapeles.', 'error');
   }
-});
 
 resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
