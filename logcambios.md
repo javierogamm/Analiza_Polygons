@@ -21,3 +21,8 @@
 - Reescritura del script principal para eliminar errores de sintaxis y restaurar la carga del mapa de OpenStreetMap.
 - Consolidación de los formateadores de coordenadas para polígonos y puntos con cierre automático de polígonos.
 - Mejora de los mensajes de registro para depurar la carga de teselas y las acciones sobre el mapa.
+
+## v1.4.0
+- Nuevo botón dedicado para copiar polígonos en formato Qlik con la expresión exacta `=\n'[[]]'` y separadores por comas.
+- Generación automática de la cadena Qlik con coordenadas `longitud,latitud` cerradas, lista para pegar.
+- El botón se desactiva sin polígonos para evitar copiar datos incompletos y mantiene el registro de acciones del mapa.
