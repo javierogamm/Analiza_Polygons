@@ -31,7 +31,6 @@
       </p>
       <div class="cta-row">
         <button id="copy-btn" class="primary">Copiar coordenadas</button>
-        <button id="copy-qlik-btn" class="ghost">Copiar polígono Qlik</button>
         <button id="reset-btn" class="ghost">Limpiar mapa</button>
       </div>
     </div>
@@ -67,7 +66,10 @@
           <p class="eyebrow">Exportación</p>
           <h2>Coordenadas generadas</h2>
         </div>
-        <span id="copy-status" class="status"></span>
+        <div class="export-controls">
+          <button id="copy-qlik-btn" class="ghost emphasis">Copiar modo Qlik</button>
+          <span id="copy-status" class="status"></span>
+        </div>
       </header>
       <pre id="output" aria-live="polite" class="output">Crea al menos un punto para ver sus coordenadas aquí.</pre>
     </section>
