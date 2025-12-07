@@ -43,6 +43,11 @@
           <p class="eyebrow">Mapa base</p>
           <h2>Dibuja sobre OpenStreetMap</h2>
         </div>
+        <div class="import-controls">
+          <input type="file" id="geojson-input" accept=".geojson,.json" hidden />
+          <button id="import-btn" class="primary" type="button">Importar GeoJSON</button>
+          <button id="import-example-btn" class="ghost" type="button">Cargar ejemplo</button>
+        </div>
         <span id="map-status" class="status"></span>
       </div>
       <div id="map" aria-label="Mapa de dibujo"></div>
@@ -53,6 +58,18 @@
           <li>El panel inferior lista cada polígono numerado con sus coordenadas.</li>
           <li>Copia el resultado y pégalo en tu flujo de trabajo.</li>
         </ol>
+      </div>
+    </section>
+
+    <section class="panel log-visual">
+      <header class="panel-header">
+        <div>
+          <p class="eyebrow">Registro</p>
+          <h2>Pasos de importación</h2>
+        </div>
+      </header>
+      <div id="visual-log" class="log-entries" aria-live="polite">
+        <div class="log-entry info">Listo para registrar los pasos de importación.</div>
       </div>
     </section>
 

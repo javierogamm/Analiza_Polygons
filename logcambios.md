@@ -48,3 +48,8 @@
 - Modal completo para configurar el nombre del tesauro y los valores por polígono antes de exportar el IF de Qlik.
 - Vista previa persistente del IF generado debajo del panel de exportación para validar el resultado antes de pegarlo.
 - Eliminación del visor de registro del mapa y nuevo marcador de vértices estilo pin de mapas, más grande y visible para dibujar.
+
+## v1.10.0
+- Botones para importar GeoJSON (archivo o ejemplo incluido) y pintar automáticamente los polígonos en el mapa existente.
+- Simplificación automática de anillos a un máximo de 50 vértices para preservar la forma sin sobrecargar el lienzo.
+- Registro visual dedicado que documenta cada paso de la importación, con centrado del mapa y actualización de exportaciones.
