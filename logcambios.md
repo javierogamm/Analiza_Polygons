@@ -58,3 +58,7 @@
 - El importador asigna automáticamente el nombre de cada polígono a partir de la propiedad `name` (y variantes) del GeoJSON y lo muestra como etiqueta.
 - Visualización dual en verde del polígono original y su versión simplificada, con controles para mostrar u ocultar cada tipo desde la interfaz.
 - Limpieza del mapa que borra también las capas importadas y mantiene el visor de exportación sincronizado.
+
+## v1.12.0
+- El importador de GeoJSON conserva el nombre `name` de cada polígono para mostrarlo en el mapa y reutilizarlo en las exportaciones y expresiones IF.
+- Los formularios de valores por polígono ahora listan las etiquetas reales para facilitar la asignación de tesauros.
