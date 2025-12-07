@@ -149,8 +149,8 @@ function formatGeometries(polygons) {
   const pretty = true;
 
   return polygons
-    .map((coords, index) => {
-      const polygonLabel = `Polígono ${index + 1}`;
+    .map(({ coords, name }, index) => {
+      const polygonLabel = buildPolygonLabel(name, index);
       const serialized = buildPolygonString(coords, { pretty });
       return `${polygonLabel}:\n${serialized}`;
     })
@@ -162,7 +162,7 @@ function collectGeometries() {
 
   const collect = (layer) => {
     if (layer instanceof L.Polygon) {
-      polygons.push(formatPolygon(layer));
+      polygons.push({ coords: formatPolygon(layer), name: getPolygonName(layer) });
     }
   };
 
@@ -176,6 +176,23 @@ function formatPolygon(layer) {
   const latLngs = layer.getLatLngs()[0] || [];
   const closed = ensureClosedPolygon(latLngs);
   return closed.map(({ lat, lng }) => [roundCoord(lng), roundCoord(lat)]);
+}
+
+function getPolygonName(layer) {
+  if (!layer || typeof layer.polygonName !== 'string') return '';
+  return layer.polygonName;
+}
+
+function setPolygonName(layer, name) {
+  if (!layer || !name) return;
+  layer.polygonName = name;
+}
+
+function buildPolygonLabel(name, index) {
+  if (typeof name === 'string' && name.trim()) {
+    return name.trim();
+  }
+  return `Polígono ${index + 1}`;
 }
 
 function ensureClosedPolygon(latLngs) {
@@ -243,6 +260,9 @@ function processGeoJsonData(data, label = 'GeoJSON') {
 
     const originalLayer = L.polygon(rings, IMPORT_ORIGINAL_STYLE);
     const simplifiedLayer = L.polygon(simplifiedRings, IMPORT_SIMPLIFIED_STYLE);
+
+    setPolygonName(originalLayer, polygonName);
+    setPolygonName(simplifiedLayer, polygonName);
 
     attachPolygonName(originalLayer, polygonName);
     attachPolygonName(simplifiedLayer, `${polygonName} (simplificado)`);
@@ -363,6 +383,7 @@ function deriveName(properties) {
 
 function attachPolygonName(layer, name) {
   if (!name) return;
+  setPolygonName(layer, name);
   layer.bindTooltip(name, {
     permanent: true,
     direction: 'center',
@@ -518,8 +539,8 @@ function buildPolygonsExport(polygons) {
   if (!polygons.length) return '';
 
   return polygons
-    .map((coords, index) => {
-      const label = `Polígono ${index + 1}`;
+    .map(({ coords, name }, index) => {
+      const label = buildPolygonLabel(name, index);
       const serialized = buildPolygonString(coords, { pretty });
       return `${label}: ${serialized}`;
     })
@@ -538,7 +559,7 @@ function buildConditionalIfExport(thesaurusName, polygons, values) {
   if (!polygons.length || polygons.length !== values.length) return '';
   const pretty = true;
 
-  const clauses = polygons.map((coords, index) => {
+  const clauses = polygons.map(({ coords }, index) => {
     const serialized = buildPolygonString(coords, { pretty });
     return `IF(${thesaurusName} ='${values[index]}', ${serialized}`;
   });
@@ -582,18 +603,20 @@ function renderPolygonValueInputs() {
   if (!polygonValuesContainer) return;
   polygonValuesContainer.innerHTML = '';
 
-  lastPolygons.forEach((_, index) => {
+  lastPolygons.forEach(({ name }, index) => {
+    const label = buildPolygonLabel(name, index);
     const wrapper = document.createElement('label');
     wrapper.className = 'field';
 
     const span = document.createElement('span');
-    span.textContent = `Valor para polígono ${index + 1}`;
+    span.textContent = `Valor para ${label}`;
 
     const input = document.createElement('input');
     input.type = 'text';
     input.required = true;
     input.name = `polygon-${index + 1}`;
-    input.placeholder = `Tesauro ${index + 1}`;
+    input.placeholder = `Tesauro ${label}`;
+    input.dataset.label = label;
 
     wrapper.appendChild(span);
     wrapper.appendChild(input);
@@ -609,9 +632,10 @@ function collectPolygonValues() {
   for (const input of inputs) {
     const value = input.value.trim();
     if (!value) {
+      const label = input.dataset.label || input.name;
       status.textContent = 'Cada polígono necesita un valor';
       status.style.color = '#e11d48';
-      logMessage(`Falta el valor de tesauro para ${input.name}.`, 'warn');
+      logMessage(`Falta el valor de tesauro para ${label}.`, 'warn');
       input.focus();
       return null;
     }
