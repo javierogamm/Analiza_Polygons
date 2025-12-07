@@ -60,6 +60,10 @@
           <input id="toggle-simplified" type="checkbox" checked />
           <span>Mostrar polígonos simplificados</span>
         </label>
+        <label class="toggle">
+          <input id="toggle-names" type="checkbox" checked />
+          <span>Mostrar nombres en el mapa</span>
+        </label>
       </div>
       <div class="helper">
         <p><strong>Cómo usarlo</strong></p>
@@ -113,11 +117,18 @@
         <button id="if-modal-close" class="icon-btn" aria-label="Cerrar modal">×</button>
       </header>
       <form id="if-form" class="if-form">
+        <label class="field field--inline">
+          <span>¿Usar valores de nombre de los polígonos?</span>
+          <input id="use-polygon-names" name="usePolygonNames" type="checkbox" />
+        </label>
         <label class="field">
           <span>Nombre del tesauro</span>
           <input id="thesaurus-name" name="thesaurus" type="text" placeholder="Ej. campo_municipio" required />
         </label>
         <div id="polygon-values" class="polygon-values" aria-live="polite"></div>
+        <p id="polygon-values-helper" class="helper helper--compact">
+          Activa los valores manuales si prefieres elegir un tesauro diferente para cada polígono.
+        </p>
         <div class="if-form__actions">
           <button type="button" id="if-cancel" class="ghost">Cancelar</button>
           <button type="submit" class="primary">Generar y copiar IF</button>

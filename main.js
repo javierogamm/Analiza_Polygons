@@ -16,12 +16,15 @@ const ifCancel = document.getElementById('if-cancel');
 const ifForm = document.getElementById('if-form');
 const thesaurusNameInput = document.getElementById('thesaurus-name');
 const polygonValuesContainer = document.getElementById('polygon-values');
+const polygonValuesHelper = document.getElementById('polygon-values-helper');
+const usePolygonNamesCheckbox = document.getElementById('use-polygon-names');
 const visualLog = document.getElementById('visual-log');
 const importBtn = document.getElementById('import-btn');
 const importExampleBtn = document.getElementById('import-example-btn');
 const geoJsonInput = document.getElementById('geojson-input');
 const toggleOriginalCheckbox = document.getElementById('toggle-original');
 const toggleSimplifiedCheckbox = document.getElementById('toggle-simplified');
+const toggleNamesCheckbox = document.getElementById('toggle-names');
 
 const MAX_IMPORT_POINTS = 50;
 
@@ -77,6 +80,7 @@ function initMap() {
   map.addLayer(importedSimplifiedGroup);
   applyOriginalVisibility();
   applySimplifiedVisibility();
+  applyNameVisibility();
 
   drawControl = new L.Control.Draw({
     position: 'topright',
@@ -416,6 +420,14 @@ function applySimplifiedVisibility() {
   }
 }
 
+function applyNameVisibility() {
+  if (!map) return;
+  const visible = toggleNamesCheckbox?.checked !== false;
+  const container = map.getContainer?.();
+  if (!container) return;
+  container.classList.toggle('hide-polygon-names', !visible);
+}
+
 copyBtn.addEventListener('click', async () => {
   if (!lastFormatted) return;
   try {
@@ -488,6 +500,8 @@ importExampleBtn?.addEventListener('click', () => {
 
 toggleOriginalCheckbox?.addEventListener('change', applyOriginalVisibility);
 toggleSimplifiedCheckbox?.addEventListener('change', applySimplifiedVisibility);
+toggleNamesCheckbox?.addEventListener('change', applyNameVisibility);
+usePolygonNamesCheckbox?.addEventListener('change', updatePolygonValueVisibility);
 
 ifModalClose?.addEventListener('click', closeIfModal);
 ifCancel?.addEventListener('click', closeIfModal);
@@ -509,7 +523,8 @@ ifForm?.addEventListener('submit', async (event) => {
     return;
   }
 
-  const values = collectPolygonValues();
+  const usePolygonNames = usePolygonNamesCheckbox?.checked;
+  const values = usePolygonNames ? derivePolygonNameValues() : collectPolygonValues();
   if (!values) return;
 
   const expression = buildConditionalIfExport(thesaurusName, lastPolygons, values);
@@ -588,6 +603,7 @@ function toggleQlikButtons(enabled) {
 
 function openIfModal() {
   renderPolygonValueInputs();
+  updatePolygonValueVisibility();
   ifModal?.setAttribute('aria-hidden', 'false');
   ifModal?.classList.add('open');
   thesaurusNameInput?.focus();
@@ -624,6 +640,17 @@ function renderPolygonValueInputs() {
   });
 }
 
+function updatePolygonValueVisibility() {
+  if (!polygonValuesContainer || !polygonValuesHelper) return;
+  const usingNames = usePolygonNamesCheckbox?.checked;
+  polygonValuesContainer.classList.toggle('is-hidden', !!usingNames);
+  polygonValuesHelper.classList.toggle('is-hidden', !!usingNames);
+  const inputs = polygonValuesContainer.querySelectorAll('input');
+  inputs.forEach((input) => {
+    input.required = !usingNames;
+  });
+}
+
 function collectPolygonValues() {
   if (!polygonValuesContainer) return null;
   const inputs = Array.from(polygonValuesContainer.querySelectorAll('input'));
@@ -643,6 +670,11 @@ function collectPolygonValues() {
   }
 
   return values;
+}
+
+function derivePolygonNameValues() {
+  if (!lastPolygons.length) return null;
+  return lastPolygons.map(({ name }, index) => buildPolygonLabel(name, index));
 }
 
 function refreshIfPreview() {

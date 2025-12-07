@@ -62,3 +62,8 @@
 ## v1.12.0
 - El importador de GeoJSON conserva el nombre `name` de cada polígono para mostrarlo en el mapa y reutilizarlo en las exportaciones y expresiones IF.
 - Los formularios de valores por polígono ahora listan las etiquetas reales para facilitar la asignación de tesauros.
+
+## v1.13.0
+- Nuevo interruptor de visibilidad para mostrar u ocultar las etiquetas de nombre directamente sobre el mapa sin perder la información importada.
+- El modal de exportación IF permite reutilizar automáticamente los nombres de los polígonos como valores de tesauro, simplificando el flujo cuando ya vienen nombrados.
+- Ayuda contextual y campos dinámicos que se ocultan al usar los nombres existentes, manteniendo el formulario enfocado en el tesauro.

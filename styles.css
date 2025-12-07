@@ -156,6 +156,11 @@ button.ghost {
   color: var(--ink-600);
 }
 
+.helper--compact {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
 .helper ol {
   margin: 6px 0 0 16px;
   padding: 0;
@@ -347,6 +352,12 @@ button.emphasis {
   color: var(--ink-700);
 }
 
+.field--inline {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
 .field input {
   padding: 12px 14px;
   border-radius: 12px;
@@ -368,6 +379,14 @@ button.emphasis {
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+.hide-polygon-names .polygon-label {
+  display: none !important;
 }
 
 @media (max-width: 720px) {
