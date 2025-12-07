@@ -703,8 +703,9 @@ function buildGestionaExport(referenceField, coordsField, polygons, values) {
       const label = buildPolygonLabel(name, index);
       const section = buildSectionName(label);
       const serialized = buildPolygonString(coords, { pretty });
+      const sanitizedValue = sanitizeSelectorValue(values[index]);
       return [
-        `{{#${section} | condition :(personalized.${referenceField} == "${values[index]}")}}`,
+        `{{#${section} | condition :(personalized.${referenceField}=="${sanitizedValue}")}}`,
         `{{let | reference: personalized.${coordsField} | result: ${serialized}}}`,
         `{{/${section}}}`,
       ].join('\n');
@@ -719,11 +720,19 @@ function buildSectionName(label) {
   const normalized = label
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
+    .replace(/[^a-zA-Z0-9]+/g, '')
+    .trim();
 
   if (!normalized) return fallback;
-  return `section_${normalized}`;
+  return `section_${normalized.toUpperCase()}`;
+}
+
+function sanitizeSelectorValue(value) {
+  if (!value) return '';
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '');
 }
 
 function toggleExportButtons(enabled) {
