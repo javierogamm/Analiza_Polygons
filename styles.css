@@ -124,6 +124,31 @@ button.ghost {
   border: 1px solid var(--ink-200);
 }
 
+.visibility-toggles {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 6px 10px;
+  background: #f8fafc;
+  border-radius: calc(var(--radius) - 8px);
+  border: 1px solid var(--ink-200);
+}
+
+.toggle {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.toggle input {
+  accent-color: #16a34a;
+  width: 18px;
+  height: 18px;
+}
+
 .helper {
   background: var(--accent-soft);
   border-radius: calc(var(--radius) - 6px);
@@ -232,6 +257,16 @@ button.emphasis {
 .leaflet-container {
   border-radius: inherit;
   outline: none;
+}
+
+.polygon-label {
+  background: rgba(22, 163, 74, 0.9);
+  color: #f8fafc;
+  border: none;
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-weight: 700;
+  box-shadow: 0 10px 20px rgba(22, 163, 74, 0.25);
 }
 
 .leaflet-bar a {

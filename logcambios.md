@@ -53,3 +53,8 @@
 - Botones para importar GeoJSON (archivo o ejemplo incluido) y pintar automáticamente los polígonos en el mapa existente.
 - Simplificación automática de anillos a un máximo de 50 vértices para preservar la forma sin sobrecargar el lienzo.
 - Registro visual dedicado que documenta cada paso de la importación, con centrado del mapa y actualización de exportaciones.
+
+## v1.11.0
+- El importador asigna automáticamente el nombre de cada polígono a partir de la propiedad `name` (y variantes) del GeoJSON y lo muestra como etiqueta.
+- Visualización dual en verde del polígono original y su versión simplificada, con controles para mostrar u ocultar cada tipo desde la interfaz.
+- Limpieza del mapa que borra también las capas importadas y mantiene el visor de exportación sincronizado.

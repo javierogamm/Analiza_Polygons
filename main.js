@@ -1,4 +1,6 @@
 const COORD_PRECISION = 6;
+const IMPORT_ORIGINAL_STYLE = { color: '#16a34a', weight: 2, fillOpacity: 0.1 };
+const IMPORT_SIMPLIFIED_STYLE = { color: '#16a34a', weight: 3, fillOpacity: 0.2 };
 
 const output = document.getElementById('output');
 const copyBtn = document.getElementById('copy-btn');
@@ -18,11 +20,15 @@ const visualLog = document.getElementById('visual-log');
 const importBtn = document.getElementById('import-btn');
 const importExampleBtn = document.getElementById('import-example-btn');
 const geoJsonInput = document.getElementById('geojson-input');
+const toggleOriginalCheckbox = document.getElementById('toggle-original');
+const toggleSimplifiedCheckbox = document.getElementById('toggle-simplified');
 
 const MAX_IMPORT_POINTS = 50;
 
 let map;
 let drawnItems;
+let importedOriginalGroup;
+let importedSimplifiedGroup;
 let drawControl;
 let lastFormatted = '';
 let lastPolygons = [];
@@ -64,6 +70,13 @@ function initMap() {
 
   drawnItems = new L.FeatureGroup();
   map.addLayer(drawnItems);
+
+  importedOriginalGroup = new L.LayerGroup();
+  importedSimplifiedGroup = new L.LayerGroup();
+  map.addLayer(importedOriginalGroup);
+  map.addLayer(importedSimplifiedGroup);
+  applyOriginalVisibility();
+  applySimplifiedVisibility();
 
   drawControl = new L.Control.Draw({
     position: 'topright',
@@ -147,11 +160,14 @@ function formatGeometries(polygons) {
 function collectGeometries() {
   const polygons = [];
 
-  drawnItems.eachLayer((layer) => {
+  const collect = (layer) => {
     if (layer instanceof L.Polygon) {
       polygons.push(formatPolygon(layer));
     }
-  });
+  };
+
+  drawnItems.eachLayer(collect);
+  importedSimplifiedGroup?.eachLayer(collect);
 
   return polygons;
 }
@@ -218,59 +234,71 @@ function processGeoJsonData(data, label = 'GeoJSON') {
     return;
   }
 
-  const addedLayers = [];
+  const addedSimplifiedLayers = [];
+  const addedOriginalLayers = [];
 
-  polygons.forEach((rings, index) => {
+  polygons.forEach(({ rings, name }, index) => {
+    const polygonName = name || `Polígono ${index + 1}`;
     const simplifiedRings = rings.map((ring) => reducePoints(ring, MAX_IMPORT_POINTS));
-    const layer = L.polygon(simplifiedRings, {
-      color: '#2563eb',
-      weight: 3,
-    });
-    drawnItems.addLayer(layer);
-    addedLayers.push(layer);
+
+    const originalLayer = L.polygon(rings, IMPORT_ORIGINAL_STYLE);
+    const simplifiedLayer = L.polygon(simplifiedRings, IMPORT_SIMPLIFIED_STYLE);
+
+    attachPolygonName(originalLayer, polygonName);
+    attachPolygonName(simplifiedLayer, `${polygonName} (simplificado)`);
+
+    importedOriginalGroup.addLayer(originalLayer);
+    importedSimplifiedGroup.addLayer(simplifiedLayer);
+
+    addedOriginalLayers.push(originalLayer);
+    addedSimplifiedLayers.push(simplifiedLayer);
 
     const originalPoints = rings[0]?.length || 0;
     const simplifiedPoints = simplifiedRings[0]?.length || 0;
     if (simplifiedPoints < originalPoints) {
       logMessage(
-        `Polígono ${index + 1} simplificado de ${originalPoints} a ${simplifiedPoints} puntos.`,
+        `${polygonName} simplificado de ${originalPoints} a ${simplifiedPoints} puntos.`,
         'info'
       );
     }
 
-    logMessage(`Polígono ${index + 1} importado desde ${label}.`);
+    logMessage(`${polygonName} importado desde ${label}.`);
   });
 
-  if (addedLayers.length) {
-    const group = L.featureGroup(addedLayers);
+  if (addedSimplifiedLayers.length) {
+    const group = L.featureGroup([...addedSimplifiedLayers, ...addedOriginalLayers]);
     map.fitBounds(group.getBounds(), { padding: [20, 20] });
     updateOutput();
-    logMessage(`Se añadieron ${addedLayers.length} polígonos desde ${label}.`);
+    applyOriginalVisibility();
+    applySimplifiedVisibility();
+    logMessage(`Se añadieron ${addedSimplifiedLayers.length} polígonos desde ${label}.`);
   }
 }
 
 function extractPolygons(geojson) {
   const polygons = [];
 
-  const addPolygon = (coords) => {
+  const addPolygon = (coords, name) => {
     if (!Array.isArray(coords) || !coords.length) return;
     const rings = coords
       .map((ring) => toLatLngRing(ring))
       .filter((ring) => ring && ring.length);
-    if (rings.length) polygons.push(rings);
+    if (rings.length) polygons.push({ rings, name });
   };
 
-  const handleGeometry = (geometry) => {
+  const handleGeometry = (geometry, properties) => {
     if (!geometry || !geometry.type) return;
     const { type, coordinates } = geometry;
     if (!coordinates) return;
 
+    const name = deriveName(properties);
+
     switch (type) {
       case 'Polygon':
-        addPolygon(coordinates);
+        addPolygon(coordinates, name);
         break;
       case 'MultiPolygon':
-        coordinates.forEach((polygonCoords) => addPolygon(polygonCoords));
+        coordinates.forEach((polygonCoords) => addPolygon(polygonCoords, name));
         break;
       default:
         logMessage(`Geometría ${type} omitida: solo se importan polígonos.`, 'warn');
@@ -278,9 +306,9 @@ function extractPolygons(geojson) {
   };
 
   if (geojson.type === 'FeatureCollection' && Array.isArray(geojson.features)) {
-    geojson.features.forEach((feature) => handleGeometry(feature.geometry));
+    geojson.features.forEach((feature) => handleGeometry(feature.geometry, feature.properties));
   } else if (geojson.type === 'Feature') {
-    handleGeometry(geojson.geometry);
+    handleGeometry(geojson.geometry, geojson.properties);
   } else {
     handleGeometry(geojson);
   }
@@ -317,6 +345,54 @@ function reducePoints(ring, maxPoints) {
 
   sampled.push(sampled[0]);
   return sampled;
+}
+
+function deriveName(properties) {
+  if (!properties || typeof properties !== 'object') return '';
+  const candidates = ['name', 'Name', 'nombre', 'Nombre', 'title', 'Title'];
+
+  for (const key of candidates) {
+    const value = properties[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return '';
+}
+
+function attachPolygonName(layer, name) {
+  if (!name) return;
+  layer.bindTooltip(name, {
+    permanent: true,
+    direction: 'center',
+    className: 'polygon-label',
+    opacity: 0.95,
+  });
+}
+
+function applyOriginalVisibility() {
+  if (!map || !importedOriginalGroup) return;
+  const visible = toggleOriginalCheckbox?.checked !== false;
+  if (visible) {
+    if (!map.hasLayer(importedOriginalGroup)) {
+      map.addLayer(importedOriginalGroup);
+    }
+  } else if (map.hasLayer(importedOriginalGroup)) {
+    map.removeLayer(importedOriginalGroup);
+  }
+}
+
+function applySimplifiedVisibility() {
+  if (!map || !importedSimplifiedGroup) return;
+  const visible = toggleSimplifiedCheckbox?.checked !== false;
+  if (visible) {
+    if (!map.hasLayer(importedSimplifiedGroup)) {
+      map.addLayer(importedSimplifiedGroup);
+    }
+  } else if (map.hasLayer(importedSimplifiedGroup)) {
+    map.removeLayer(importedSimplifiedGroup);
+  }
 }
 
 copyBtn.addEventListener('click', async () => {
@@ -367,6 +443,8 @@ copyQlikIfBtn.addEventListener('click', async () => {
 
 resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
+  importedOriginalGroup?.clearLayers();
+  importedSimplifiedGroup?.clearLayers();
   updateOutput();
   logMessage('Mapa reiniciado: capas limpiadas.');
 });
@@ -386,6 +464,9 @@ geoJsonInput?.addEventListener('change', (event) => {
 importExampleBtn?.addEventListener('click', () => {
   importGeoJsonFromUrl('ejemplos/ejemplo.geojson', 'ejemplo.geojson');
 });
+
+toggleOriginalCheckbox?.addEventListener('change', applyOriginalVisibility);
+toggleSimplifiedCheckbox?.addEventListener('change', applySimplifiedVisibility);
 
 ifModalClose?.addEventListener('click', closeIfModal);
 ifCancel?.addEventListener('click', closeIfModal);
