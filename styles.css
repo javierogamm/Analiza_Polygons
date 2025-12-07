@@ -188,6 +188,14 @@ button.ghost {
   gap: 10px;
 }
 
+.import-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 button.emphasis {
   border-color: var(--accent);
   color: var(--accent);

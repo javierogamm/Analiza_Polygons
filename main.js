@@ -15,6 +15,11 @@ const ifForm = document.getElementById('if-form');
 const thesaurusNameInput = document.getElementById('thesaurus-name');
 const polygonValuesContainer = document.getElementById('polygon-values');
 const visualLog = document.getElementById('visual-log');
+const importBtn = document.getElementById('import-btn');
+const importExampleBtn = document.getElementById('import-example-btn');
+const geoJsonInput = document.getElementById('geojson-input');
+
+const MAX_IMPORT_POINTS = 50;
 
 let map;
 let drawnItems;
@@ -172,6 +177,148 @@ function roundCoord(value) {
   return Number(value.toFixed(COORD_PRECISION));
 }
 
+async function importGeoJsonFromUrl(url, label = 'GeoJSON remoto') {
+  try {
+    logMessage(`Importando GeoJSON desde ${label}...`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    processGeoJsonData(data, label);
+  } catch (error) {
+    logMessage(`No se pudo importar ${label}: ${error.message}`, 'error');
+  }
+}
+
+function importGeoJsonFromFile(file) {
+  logMessage(`Importando archivo ${file.name}...`);
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      processGeoJsonData(data, file.name);
+    } catch (error) {
+      logMessage(`El archivo ${file.name} no es un GeoJSON válido: ${error.message}`, 'error');
+    }
+  };
+
+  reader.onerror = () => {
+    logMessage(`Error al leer ${file.name}: ${reader.error?.message || 'desconocido'}`, 'error');
+  };
+
+  reader.readAsText(file);
+}
+
+function processGeoJsonData(data, label = 'GeoJSON') {
+  const polygons = extractPolygons(data);
+  if (!polygons.length) {
+    logMessage(`No se encontraron polígonos en ${label}.`, 'warn');
+    return;
+  }
+
+  const addedLayers = [];
+
+  polygons.forEach((rings, index) => {
+    const simplifiedRings = rings.map((ring) => reducePoints(ring, MAX_IMPORT_POINTS));
+    const layer = L.polygon(simplifiedRings, {
+      color: '#2563eb',
+      weight: 3,
+    });
+    drawnItems.addLayer(layer);
+    addedLayers.push(layer);
+
+    const originalPoints = rings[0]?.length || 0;
+    const simplifiedPoints = simplifiedRings[0]?.length || 0;
+    if (simplifiedPoints < originalPoints) {
+      logMessage(
+        `Polígono ${index + 1} simplificado de ${originalPoints} a ${simplifiedPoints} puntos.`,
+        'info'
+      );
+    }
+
+    logMessage(`Polígono ${index + 1} importado desde ${label}.`);
+  });
+
+  if (addedLayers.length) {
+    const group = L.featureGroup(addedLayers);
+    map.fitBounds(group.getBounds(), { padding: [20, 20] });
+    updateOutput();
+    logMessage(`Se añadieron ${addedLayers.length} polígonos desde ${label}.`);
+  }
+}
+
+function extractPolygons(geojson) {
+  const polygons = [];
+
+  const addPolygon = (coords) => {
+    if (!Array.isArray(coords) || !coords.length) return;
+    const rings = coords
+      .map((ring) => toLatLngRing(ring))
+      .filter((ring) => ring && ring.length);
+    if (rings.length) polygons.push(rings);
+  };
+
+  const handleGeometry = (geometry) => {
+    if (!geometry || !geometry.type) return;
+    const { type, coordinates } = geometry;
+    if (!coordinates) return;
+
+    switch (type) {
+      case 'Polygon':
+        addPolygon(coordinates);
+        break;
+      case 'MultiPolygon':
+        coordinates.forEach((polygonCoords) => addPolygon(polygonCoords));
+        break;
+      default:
+        logMessage(`Geometría ${type} omitida: solo se importan polígonos.`, 'warn');
+    }
+  };
+
+  if (geojson.type === 'FeatureCollection' && Array.isArray(geojson.features)) {
+    geojson.features.forEach((feature) => handleGeometry(feature.geometry));
+  } else if (geojson.type === 'Feature') {
+    handleGeometry(geojson.geometry);
+  } else {
+    handleGeometry(geojson);
+  }
+
+  return polygons;
+}
+
+function toLatLngRing(ring) {
+  if (!Array.isArray(ring)) return null;
+  const latLngs = ring
+    .map((point) => {
+      const [lng, lat] = point || [];
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      return { lat, lng };
+    })
+    .filter(Boolean);
+  return ensureClosedPolygon(latLngs);
+}
+
+function reducePoints(ring, maxPoints) {
+  if (!ring.length) return ring;
+  const closedRing = ensureClosedPolygon(ring);
+
+  if (closedRing.length <= maxPoints) return closedRing;
+
+  const openRing = closedRing.slice(0, -1);
+  const target = Math.max(2, maxPoints - 1);
+  const sampled = [];
+
+  for (let i = 0; i < target; i += 1) {
+    const idx = Math.round((i * (openRing.length - 1)) / (target - 1));
+    sampled.push(openRing[idx]);
+  }
+
+  sampled.push(sampled[0]);
+  return sampled;
+}
+
 copyBtn.addEventListener('click', async () => {
   if (!lastFormatted) return;
   try {
@@ -222,6 +369,22 @@ resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
   updateOutput();
   logMessage('Mapa reiniciado: capas limpiadas.');
+});
+
+importBtn?.addEventListener('click', () => {
+  geoJsonInput?.click();
+  logMessage('Selector de archivo GeoJSON abierto.');
+});
+
+geoJsonInput?.addEventListener('change', (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  importGeoJsonFromFile(file);
+  event.target.value = '';
+});
+
+importExampleBtn?.addEventListener('click', () => {
+  importGeoJsonFromUrl('ejemplos/ejemplo.geojson', 'ejemplo.geojson');
 });
 
 ifModalClose?.addEventListener('click', closeIfModal);
