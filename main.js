@@ -4,8 +4,13 @@ const IMPORT_SIMPLIFIED_STYLE = { color: '#16a34a', weight: 3, fillOpacity: 0.2 
 
 const output = document.getElementById('output');
 const copyBtn = document.getElementById('copy-btn');
-const copyQlikBtn = document.getElementById('copy-qlik-btn');
-const copyQlikIfBtn = document.getElementById('copy-qlik-if-btn');
+const copyCompleteBtn = document.getElementById('copy-complete-btn');
+const copyHeroSimplifiedBtn = document.getElementById('copy-hero-simplified');
+const copyHeroCompleteBtn = document.getElementById('copy-hero-complete');
+const copyQlikSimplifiedBtn = document.getElementById('copy-qlik-simplified-btn');
+const copyQlikCompleteBtn = document.getElementById('copy-qlik-complete-btn');
+const copyIfSimplifiedBtn = document.getElementById('copy-if-simplified-btn');
+const copyIfCompleteBtn = document.getElementById('copy-if-complete-btn');
 const resetBtn = document.getElementById('reset-btn');
 const status = document.getElementById('copy-status');
 const mapStatus = document.getElementById('map-status');
@@ -34,8 +39,9 @@ let importedOriginalGroup;
 let importedSimplifiedGroup;
 let drawControl;
 let lastFormatted = '';
-let lastPolygons = [];
-let lastIfExpression = '';
+let lastPolygons = { simplified: [], original: [] };
+let lastIfExpression = { simplified: '', original: '' };
+let currentIfMode = 'simplified';
 
 initMap();
 updateOutput();
@@ -134,17 +140,20 @@ function removeExistingMap() {
 }
 
 function updateOutput() {
-  const polygons = collectGeometries();
-  lastPolygons = polygons;
-  if (!polygons.length) {
-    lastIfExpression = '';
+  const simplifiedPolygons = collectGeometries('simplified');
+  const originalPolygons = collectGeometries('original');
+  lastPolygons = { simplified: simplifiedPolygons, original: originalPolygons };
+  const hasPolygons = simplifiedPolygons.length > 0 || originalPolygons.length > 0;
+
+  if (!hasPolygons) {
+    lastIfExpression = { simplified: '', original: '' };
   }
 
-  const formatted = formatGeometries(polygons);
+  const formatted = formatGeometries(simplifiedPolygons);
   output.textContent = formatted || 'Crea al menos un polígono para ver sus coordenadas aquí.';
   lastFormatted = formatted;
   status.textContent = '';
-  toggleQlikButtons(polygons.length > 0);
+  toggleExportButtons(hasPolygons);
   refreshIfPreview();
 }
 
@@ -161,8 +170,9 @@ function formatGeometries(polygons) {
     .join('\n\n');
 }
 
-function collectGeometries() {
+function collectGeometries(mode = 'simplified') {
   const polygons = [];
+  const targetGroup = mode === 'original' ? importedOriginalGroup : importedSimplifiedGroup;
 
   const collect = (layer) => {
     if (layer instanceof L.Polygon) {
@@ -171,7 +181,7 @@ function collectGeometries() {
   };
 
   drawnItems.eachLayer(collect);
-  importedSimplifiedGroup?.eachLayer(collect);
+  targetGroup?.eachLayer(collect);
 
   return polygons;
 }
@@ -269,7 +279,7 @@ function processGeoJsonData(data, label = 'GeoJSON') {
     setPolygonName(simplifiedLayer, polygonName);
 
     attachPolygonName(originalLayer, polygonName);
-    attachPolygonName(simplifiedLayer, `${polygonName} (simplificado)`);
+    attachPolygonName(simplifiedLayer, polygonName);
 
     importedOriginalGroup.addLayer(originalLayer);
     importedSimplifiedGroup.addLayer(simplifiedLayer);
@@ -428,51 +438,76 @@ function applyNameVisibility() {
   container.classList.toggle('hide-polygon-names', !visible);
 }
 
-copyBtn.addEventListener('click', async () => {
-  if (!lastFormatted) return;
+function getModeLabel(mode = 'simplified') {
+  return mode === 'original' ? 'completo' : 'simplificado';
+}
+
+function getPolygonsByMode(mode = 'simplified') {
+  if (!lastPolygons || typeof lastPolygons !== 'object') return [];
+  return lastPolygons[mode] || [];
+}
+
+function setStatus(message, type = 'info') {
+  if (!status) return;
+  status.textContent = message;
+  status.style.color = type === 'success' ? '#16a34a' : type === 'error' ? '#e11d48' : '#2563eb';
+}
+
+async function copyFormattedPolygons(mode = 'simplified') {
+  const polygons = getPolygonsByMode(mode);
+  if (!polygons.length) {
+    setStatus('Añade un polígono primero', 'error');
+    logMessage('No hay polígonos para copiar coordenadas.', 'warn');
+    return;
+  }
+
+  const formatted = formatGeometries(polygons);
+  if (!formatted) return;
+
   try {
-    await navigator.clipboard.writeText(lastFormatted);
-    status.textContent = 'Copiado';
-    status.style.color = '#16a34a';
-    logMessage('Coordenadas copiadas al portapapeles.');
+    await navigator.clipboard.writeText(formatted);
+    setStatus(`Copiado (${getModeLabel(mode)})`, 'success');
+    logMessage(`Coordenadas copiadas en modo ${getModeLabel(mode)}.`);
   } catch (error) {
-    status.textContent = 'No se pudo copiar';
-    status.style.color = '#e11d48';
+    setStatus('No se pudo copiar', 'error');
     logMessage('El navegador no permitió copiar al portapapeles.', 'error');
   }
-});
+}
 
-copyQlikBtn.addEventListener('click', async () => {
-  const expression = buildPolygonsExport(lastPolygons);
+async function copyQlikExport(mode = 'simplified') {
+  const polygons = getPolygonsByMode(mode);
+  const expression = buildPolygonsExport(polygons);
   if (!expression) {
-    status.textContent = 'Añade un polígono primero';
-    status.style.color = '#e11d48';
+    setStatus('Añade un polígono primero', 'error');
     logMessage('No hay polígonos para copiar en formato Qlik.', 'warn');
     return;
   }
 
   try {
     await navigator.clipboard.writeText(expression);
-    status.textContent = 'Exportado';
-    status.style.color = '#16a34a';
-    logMessage('Polígonos copiados en formato listo para Qlik.');
+    setStatus(`Exportado (${getModeLabel(mode)})`, 'success');
+    logMessage(`Polígonos copiados en formato Qlik (${getModeLabel(mode)}).`);
   } catch (error) {
-    status.textContent = 'No se pudo copiar';
-    status.style.color = '#e11d48';
+    setStatus('No se pudo copiar', 'error');
     logMessage('El navegador no permitió copiar el formato Qlik.', 'error');
   }
+}
+
+const copyActions = [
+  { element: copyBtn, mode: 'simplified', handler: copyFormattedPolygons },
+  { element: copyCompleteBtn, mode: 'original', handler: copyFormattedPolygons },
+  { element: copyHeroSimplifiedBtn, mode: 'simplified', handler: copyFormattedPolygons },
+  { element: copyHeroCompleteBtn, mode: 'original', handler: copyFormattedPolygons },
+  { element: copyQlikSimplifiedBtn, mode: 'simplified', handler: copyQlikExport },
+  { element: copyQlikCompleteBtn, mode: 'original', handler: copyQlikExport },
+];
+
+copyActions.forEach(({ element, mode, handler }) => {
+  element?.addEventListener('click', () => handler(mode));
 });
 
-copyQlikIfBtn.addEventListener('click', async () => {
-  if (!lastPolygons.length) {
-    status.textContent = 'Añade un polígono primero';
-    status.style.color = '#e11d48';
-    logMessage('No hay polígonos para generar condicionales IF.', 'warn');
-    return;
-  }
-
-  openIfModal();
-});
+copyIfSimplifiedBtn?.addEventListener('click', () => openIfModal('simplified'));
+copyIfCompleteBtn?.addEventListener('click', () => openIfModal('original'));
 
 resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
@@ -515,6 +550,15 @@ ifModal?.addEventListener('click', (event) => {
 ifForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
 
+  const polygons = getPolygonsByMode(currentIfMode);
+  if (!polygons.length) {
+    status.textContent = 'Añade un polígono primero';
+    status.style.color = '#e11d48';
+    logMessage('No hay polígonos para generar condicionales IF.', 'warn');
+    closeIfModal();
+    return;
+  }
+
   const thesaurusName = thesaurusNameInput?.value.trim();
   if (!thesaurusName) {
     status.textContent = 'Nombre de tesauro requerido';
@@ -524,19 +568,19 @@ ifForm?.addEventListener('submit', async (event) => {
   }
 
   const usePolygonNames = usePolygonNamesCheckbox?.checked;
-  const values = usePolygonNames ? derivePolygonNameValues() : collectPolygonValues();
+  const values = usePolygonNames ? derivePolygonNameValues(currentIfMode) : collectPolygonValues();
   if (!values) return;
 
-  const expression = buildConditionalIfExport(thesaurusName, lastPolygons, values);
+  const expression = buildConditionalIfExport(thesaurusName, polygons, values);
 
   try {
     await navigator.clipboard.writeText(expression);
-    status.textContent = 'IF Qlik exportado';
+    status.textContent = `IF Qlik (${getModeLabel(currentIfMode)}) exportado`;
     status.style.color = '#16a34a';
-    lastIfExpression = expression;
+    lastIfExpression[currentIfMode] = expression;
     refreshIfPreview();
     closeIfModal();
-    logMessage('Expresión IF de Qlik copiada al portapapeles.');
+    logMessage(`Expresión IF de Qlik copiada en modo ${getModeLabel(currentIfMode)}.`);
   } catch (error) {
     status.textContent = 'No se pudo copiar';
     status.style.color = '#e11d48';
@@ -587,22 +631,41 @@ function buildConditionalIfExport(thesaurusName, polygons, values) {
   return `${joined}${closing}`;
 }
 
-function toggleQlikButtons(enabled) {
-  if (copyQlikBtn) {
-    copyQlikBtn.disabled = !enabled;
-    copyQlikBtn.title = enabled ? 'Copiar polígonos en formato Qlik' : 'Dibuja un polígono para habilitar la copia Qlik';
-  }
+function toggleExportButtons(enabled) {
+  const buttons = [
+    copyBtn,
+    copyCompleteBtn,
+    copyHeroSimplifiedBtn,
+    copyHeroCompleteBtn,
+    copyQlikSimplifiedBtn,
+    copyQlikCompleteBtn,
+    copyIfSimplifiedBtn,
+    copyIfCompleteBtn,
+  ];
 
-  if (copyQlikIfBtn) {
-    copyQlikIfBtn.disabled = !enabled;
-    copyQlikIfBtn.title = enabled
-      ? 'Generar expresión IF en Qlik con valores por polígono'
-      : 'Dibuja un polígono para habilitar la exportación IF';
-  }
+  buttons.forEach((btn) => {
+    if (!btn) return;
+    btn.disabled = !enabled;
+    const defaultTitle = btn.dataset.defaultTitle || btn.title || '';
+    if (!btn.dataset.defaultTitle) {
+      btn.dataset.defaultTitle = defaultTitle;
+    }
+
+    btn.title = enabled ? btn.dataset.defaultTitle : 'Dibuja o importa polígonos para habilitar las exportaciones';
+  });
 }
 
-function openIfModal() {
-  renderPolygonValueInputs();
+function openIfModal(mode = 'simplified') {
+  currentIfMode = mode;
+  const polygons = getPolygonsByMode(mode);
+  if (!polygons.length) {
+    status.textContent = 'Añade un polígono primero';
+    status.style.color = '#e11d48';
+    logMessage('No hay polígonos para generar condicionales IF.', 'warn');
+    return;
+  }
+
+  renderPolygonValueInputs(mode);
   updatePolygonValueVisibility();
   ifModal?.setAttribute('aria-hidden', 'false');
   ifModal?.classList.add('open');
@@ -615,11 +678,13 @@ function closeIfModal() {
   ifForm?.reset();
 }
 
-function renderPolygonValueInputs() {
+function renderPolygonValueInputs(mode = 'simplified') {
   if (!polygonValuesContainer) return;
   polygonValuesContainer.innerHTML = '';
 
-  lastPolygons.forEach(({ name }, index) => {
+  const polygons = getPolygonsByMode(mode);
+
+  polygons.forEach(({ name }, index) => {
     const label = buildPolygonLabel(name, index);
     const wrapper = document.createElement('label');
     wrapper.className = 'field';
@@ -672,18 +737,30 @@ function collectPolygonValues() {
   return values;
 }
 
-function derivePolygonNameValues() {
-  if (!lastPolygons.length) return null;
-  return lastPolygons.map(({ name }, index) => buildPolygonLabel(name, index));
+function derivePolygonNameValues(mode = 'simplified') {
+  const polygons = getPolygonsByMode(mode);
+  if (!polygons.length) return null;
+  return polygons.map(({ name }, index) => buildPolygonLabel(name, index));
 }
 
 function refreshIfPreview() {
   if (!ifPreview) return;
-  if (!lastIfExpression || !lastPolygons.length) {
+  const parts = [];
+
+  if (lastIfExpression.simplified) {
+    parts.push(`Simplificado:\n${lastIfExpression.simplified}`);
+  }
+
+  if (lastIfExpression.original) {
+    parts.push(`Completo:\n${lastIfExpression.original}`);
+  }
+
+  if (!parts.length) {
     ifPreview.textContent = 'Genera una expresión IF desde el modal para verla aquí.';
     return;
   }
-  ifPreview.textContent = lastIfExpression;
+
+  ifPreview.textContent = parts.join('\n\n');
 }
 
 function logMessage(message, level = 'info') {

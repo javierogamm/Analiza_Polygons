@@ -30,7 +30,8 @@
         Dibuja polígonos directamente sobre un mapa embebido y copia las coordenadas con el formato que prefieras.
       </p>
       <div class="cta-row">
-        <button id="copy-btn" class="primary">Exportar polígonos</button>
+        <button id="copy-hero-simplified" class="primary">Copiar simplificado</button>
+        <button id="copy-hero-complete" class="ghost">Copiar completo</button>
         <button id="reset-btn" class="ghost">Limpiar mapa</button>
       </div>
     </div>
@@ -94,8 +95,18 @@
           <h2>Coordenadas generadas</h2>
         </div>
         <div class="export-controls">
-          <button id="copy-qlik-if-btn" class="ghost">Copiar IF Qlik</button>
-          <button id="copy-qlik-btn" class="ghost emphasis">Copiar modo Qlik</button>
+          <div class="export-group">
+            <button id="copy-btn" class="ghost emphasis">Copiar simplificado</button>
+            <button id="copy-complete-btn" class="ghost">Copiar completo</button>
+          </div>
+          <div class="export-group">
+            <button id="copy-qlik-simplified-btn" class="ghost emphasis">Copiar Qlik simplificado</button>
+            <button id="copy-qlik-complete-btn" class="ghost">Copiar Qlik completo</button>
+          </div>
+          <div class="export-group">
+            <button id="copy-if-simplified-btn" class="ghost">IF simplificado</button>
+            <button id="copy-if-complete-btn" class="ghost">IF completo</button>
+          </div>
           <span id="copy-status" class="status"></span>
         </div>
       </header>

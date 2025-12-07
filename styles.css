@@ -215,7 +215,14 @@ button.ghost {
 .export-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.export-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .import-controls {

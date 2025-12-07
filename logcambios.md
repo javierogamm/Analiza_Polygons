@@ -67,3 +67,8 @@
 - Nuevo interruptor de visibilidad para mostrar u ocultar las etiquetas de nombre directamente sobre el mapa sin perder la información importada.
 - El modal de exportación IF permite reutilizar automáticamente los nombres de los polígonos como valores de tesauro, simplificando el flujo cuando ya vienen nombrados.
 - Ayuda contextual y campos dinámicos que se ocultan al usar los nombres existentes, manteniendo el formulario enfocado en el tesauro.
+
+## v1.14.0
+- Eliminación del sufijo "(simplificado)" en etiquetas y exportaciones para mantener los nombres originales de los polígonos en todos los formatos.
+- Nuevos botones para copiar coordenadas o exportar en modo Qlik diferenciando entre versiones simplificadas y completas.
+- Opciones duplicadas para generar expresiones IF con polígonos completos o simplificados y vista previa consolidada para ambos modos.
