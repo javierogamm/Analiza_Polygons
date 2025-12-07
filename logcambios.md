@@ -58,3 +58,7 @@
 - El importador asigna automáticamente el nombre de cada polígono a partir de la propiedad `name` (y variantes) del GeoJSON y lo muestra como etiqueta.
 - Visualización dual en verde del polígono original y su versión simplificada, con controles para mostrar u ocultar cada tipo desde la interfaz.
 - Limpieza del mapa que borra también las capas importadas y mantiene el visor de exportación sincronizado.
+
+## v1.12.0
+- La visualización de importaciones arranca sólo con el polígono simplificado (máximo 50 puntos) para evitar solapamientos con la versión original.
+- El mapa ya no añade por defecto la capa de polígonos originales, que queda opcional mediante el selector correspondiente.

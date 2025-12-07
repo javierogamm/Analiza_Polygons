@@ -73,7 +73,6 @@ function initMap() {
 
   importedOriginalGroup = new L.LayerGroup();
   importedSimplifiedGroup = new L.LayerGroup();
-  map.addLayer(importedOriginalGroup);
   map.addLayer(importedSimplifiedGroup);
   applyOriginalVisibility();
   applySimplifiedVisibility();
