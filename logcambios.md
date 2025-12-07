@@ -72,3 +72,8 @@
 - Eliminación del sufijo "(simplificado)" en etiquetas y exportaciones para mantener los nombres originales de los polígonos en todos los formatos.
 - Nuevos botones para copiar coordenadas o exportar en modo Qlik diferenciando entre versiones simplificadas y completas.
 - Opciones duplicadas para generar expresiones IF con polígonos completos o simplificados y vista previa consolidada para ambos modos.
+
+## v1.15.0
+- Nuevo modal de exportación Gestiona que genera secciones condicionadas por polígono con campos de referencia y coordenadas configurables.
+- Botones dedicados para lanzar la exportación Gestiona en modos simplificado o completo y copiar el código resultante.
+- Validaciones equivalentes al flujo IF que permiten reutilizar los nombres de los polígonos como valores de referencia o definirlos manualmente.

@@ -11,6 +11,8 @@ const copyQlikSimplifiedBtn = document.getElementById('copy-qlik-simplified-btn'
 const copyQlikCompleteBtn = document.getElementById('copy-qlik-complete-btn');
 const copyIfSimplifiedBtn = document.getElementById('copy-if-simplified-btn');
 const copyIfCompleteBtn = document.getElementById('copy-if-complete-btn');
+const copyGestionaSimplifiedBtn = document.getElementById('copy-gestiona-simplified-btn');
+const copyGestionaCompleteBtn = document.getElementById('copy-gestiona-complete-btn');
 const resetBtn = document.getElementById('reset-btn');
 const status = document.getElementById('copy-status');
 const mapStatus = document.getElementById('map-status');
@@ -23,6 +25,15 @@ const thesaurusNameInput = document.getElementById('thesaurus-name');
 const polygonValuesContainer = document.getElementById('polygon-values');
 const polygonValuesHelper = document.getElementById('polygon-values-helper');
 const usePolygonNamesCheckbox = document.getElementById('use-polygon-names');
+const gestionaModal = document.getElementById('gestiona-modal');
+const gestionaModalClose = document.getElementById('gestiona-modal-close');
+const gestionaCancel = document.getElementById('gestiona-cancel');
+const gestionaForm = document.getElementById('gestiona-form');
+const gestionaReferenceInput = document.getElementById('gestiona-reference');
+const gestionaCoordsInput = document.getElementById('gestiona-coords');
+const gestionaValuesContainer = document.getElementById('gestiona-values');
+const gestionaValuesHelper = document.getElementById('gestiona-values-helper');
+const useGestionaNamesCheckbox = document.getElementById('use-gestiona-names');
 const visualLog = document.getElementById('visual-log');
 const importBtn = document.getElementById('import-btn');
 const importExampleBtn = document.getElementById('import-example-btn');
@@ -42,6 +53,7 @@ let lastFormatted = '';
 let lastPolygons = { simplified: [], original: [] };
 let lastIfExpression = { simplified: '', original: '' };
 let currentIfMode = 'simplified';
+let currentGestionaMode = 'simplified';
 
 initMap();
 updateOutput();
@@ -500,6 +512,8 @@ const copyActions = [
   { element: copyHeroCompleteBtn, mode: 'original', handler: copyFormattedPolygons },
   { element: copyQlikSimplifiedBtn, mode: 'simplified', handler: copyQlikExport },
   { element: copyQlikCompleteBtn, mode: 'original', handler: copyQlikExport },
+  { element: copyGestionaSimplifiedBtn, mode: 'simplified', handler: openGestionaModal },
+  { element: copyGestionaCompleteBtn, mode: 'original', handler: openGestionaModal },
 ];
 
 copyActions.forEach(({ element, mode, handler }) => {
@@ -537,13 +551,22 @@ toggleOriginalCheckbox?.addEventListener('change', applyOriginalVisibility);
 toggleSimplifiedCheckbox?.addEventListener('change', applySimplifiedVisibility);
 toggleNamesCheckbox?.addEventListener('change', applyNameVisibility);
 usePolygonNamesCheckbox?.addEventListener('change', updatePolygonValueVisibility);
+useGestionaNamesCheckbox?.addEventListener('change', updateGestionaValueVisibility);
 
 ifModalClose?.addEventListener('click', closeIfModal);
 ifCancel?.addEventListener('click', closeIfModal);
+gestionaModalClose?.addEventListener('click', closeGestionaModal);
+gestionaCancel?.addEventListener('click', closeGestionaModal);
 
 ifModal?.addEventListener('click', (event) => {
   if (event.target === ifModal) {
     closeIfModal();
+  }
+});
+
+gestionaModal?.addEventListener('click', (event) => {
+  if (event.target === gestionaModal) {
+    closeGestionaModal();
   }
 });
 
@@ -585,6 +608,46 @@ ifForm?.addEventListener('submit', async (event) => {
     status.textContent = 'No se pudo copiar';
     status.style.color = '#e11d48';
     logMessage('El navegador no permitió copiar el IF de Qlik.', 'error');
+  }
+});
+
+gestionaForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const polygons = getPolygonsByMode(currentGestionaMode);
+  if (!polygons.length) {
+    status.textContent = 'Añade un polígono primero';
+    status.style.color = '#e11d48';
+    logMessage('No hay polígonos para generar secciones Gestiona.', 'warn');
+    closeGestionaModal();
+    return;
+  }
+
+  const referenceField = gestionaReferenceInput?.value.trim();
+  const coordsField = gestionaCoordsInput?.value.trim();
+  if (!referenceField || !coordsField) {
+    status.textContent = 'Campos de referencia requeridos';
+    status.style.color = '#e11d48';
+    logMessage('Completa los nombres de referencia y coordenadas.', 'warn');
+    return;
+  }
+
+  const usePolygonNames = useGestionaNamesCheckbox?.checked;
+  const values = usePolygonNames ? derivePolygonNameValues(currentGestionaMode) : collectGestionaValues();
+  if (!values) return;
+
+  const expression = buildGestionaExport(referenceField, coordsField, polygons, values);
+
+  try {
+    await navigator.clipboard.writeText(expression);
+    status.textContent = `Secciones Gestiona (${getModeLabel(currentGestionaMode)}) exportadas`;
+    status.style.color = '#16a34a';
+    closeGestionaModal();
+    logMessage(`Código Gestiona copiado en modo ${getModeLabel(currentGestionaMode)}.`);
+  } catch (error) {
+    status.textContent = 'No se pudo copiar';
+    status.style.color = '#e11d48';
+    logMessage('El navegador no permitió copiar el código Gestiona.', 'error');
   }
 });
 
@@ -631,6 +694,38 @@ function buildConditionalIfExport(thesaurusName, polygons, values) {
   return `${joined}${closing}`;
 }
 
+function buildGestionaExport(referenceField, coordsField, polygons, values) {
+  if (!referenceField || !coordsField || polygons.length !== values.length) return '';
+  const pretty = true;
+
+  return polygons
+    .map(({ coords, name }, index) => {
+      const label = buildPolygonLabel(name, index);
+      const section = buildSectionName(label);
+      const serialized = buildPolygonString(coords, { pretty });
+      return [
+        `{{#${section} | condition :(personalized.${referenceField} == "${values[index]}")}}`,
+        `{{let | reference: personalized.${coordsField} | result: ${serialized}}}`,
+        `{{/${section}}}`,
+      ].join('\n');
+    })
+    .join('\n\n');
+}
+
+function buildSectionName(label) {
+  const fallback = 'section_POLIGONO';
+  if (!label) return fallback;
+
+  const normalized = label
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  if (!normalized) return fallback;
+  return `section_${normalized}`;
+}
+
 function toggleExportButtons(enabled) {
   const buttons = [
     copyBtn,
@@ -641,6 +736,8 @@ function toggleExportButtons(enabled) {
     copyQlikCompleteBtn,
     copyIfSimplifiedBtn,
     copyIfCompleteBtn,
+    copyGestionaSimplifiedBtn,
+    copyGestionaCompleteBtn,
   ];
 
   buttons.forEach((btn) => {
@@ -676,6 +773,29 @@ function closeIfModal() {
   ifModal?.setAttribute('aria-hidden', 'true');
   ifModal?.classList.remove('open');
   ifForm?.reset();
+}
+
+function openGestionaModal(mode = 'simplified') {
+  currentGestionaMode = mode;
+  const polygons = getPolygonsByMode(mode);
+  if (!polygons.length) {
+    status.textContent = 'Añade un polígono primero';
+    status.style.color = '#e11d48';
+    logMessage('No hay polígonos para generar secciones Gestiona.', 'warn');
+    return;
+  }
+
+  renderGestionaValueInputs(mode);
+  updateGestionaValueVisibility();
+  gestionaModal?.setAttribute('aria-hidden', 'false');
+  gestionaModal?.classList.add('open');
+  gestionaReferenceInput?.focus();
+}
+
+function closeGestionaModal() {
+  gestionaModal?.setAttribute('aria-hidden', 'true');
+  gestionaModal?.classList.remove('open');
+  gestionaForm?.reset();
 }
 
 function renderPolygonValueInputs(mode = 'simplified') {
@@ -741,6 +861,65 @@ function derivePolygonNameValues(mode = 'simplified') {
   const polygons = getPolygonsByMode(mode);
   if (!polygons.length) return null;
   return polygons.map(({ name }, index) => buildPolygonLabel(name, index));
+}
+
+function renderGestionaValueInputs(mode = 'simplified') {
+  if (!gestionaValuesContainer) return;
+  gestionaValuesContainer.innerHTML = '';
+
+  const polygons = getPolygonsByMode(mode);
+
+  polygons.forEach(({ name }, index) => {
+    const label = buildPolygonLabel(name, index);
+    const wrapper = document.createElement('label');
+    wrapper.className = 'field';
+
+    const span = document.createElement('span');
+    span.textContent = `Referencia valor para ${label}`;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.required = true;
+    input.name = `gestiona-${index + 1}`;
+    input.placeholder = `Valor de referencia ${label}`;
+    input.dataset.label = label;
+
+    wrapper.appendChild(span);
+    wrapper.appendChild(input);
+    gestionaValuesContainer.appendChild(wrapper);
+  });
+}
+
+function updateGestionaValueVisibility() {
+  if (!gestionaValuesContainer || !gestionaValuesHelper) return;
+  const usingNames = useGestionaNamesCheckbox?.checked;
+  gestionaValuesContainer.classList.toggle('is-hidden', !!usingNames);
+  gestionaValuesHelper.classList.toggle('is-hidden', !!usingNames);
+  const inputs = gestionaValuesContainer.querySelectorAll('input');
+  inputs.forEach((input) => {
+    input.required = !usingNames;
+  });
+}
+
+function collectGestionaValues() {
+  if (!gestionaValuesContainer) return null;
+  const inputs = Array.from(gestionaValuesContainer.querySelectorAll('input'));
+
+  const values = [];
+  for (const input of inputs) {
+    const value = input.value.trim();
+    if (!value) {
+      const label = input.dataset.label || input.name;
+      status.textContent = 'Cada polígono necesita un valor de referencia';
+      status.style.color = '#e11d48';
+      logMessage(`Falta la referencia para ${label}.`, 'warn');
+      input.focus();
+      return null;
+    }
+    values.push(value);
+  }
+
+  return values;
 }
 
 function refreshIfPreview() {

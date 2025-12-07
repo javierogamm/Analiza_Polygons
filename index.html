@@ -107,6 +107,10 @@
             <button id="copy-if-simplified-btn" class="ghost">IF simplificado</button>
             <button id="copy-if-complete-btn" class="ghost">IF completo</button>
           </div>
+          <div class="export-group">
+            <button id="copy-gestiona-simplified-btn" class="ghost">Gestiona simplificado</button>
+            <button id="copy-gestiona-complete-btn" class="ghost">Gestiona completo</button>
+          </div>
           <span id="copy-status" class="status"></span>
         </div>
       </header>
@@ -143,6 +147,59 @@
         <div class="if-form__actions">
           <button type="button" id="if-cancel" class="ghost">Cancelar</button>
           <button type="submit" class="primary">Generar y copiar IF</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div
+    id="gestiona-modal"
+    class="if-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="gestiona-modal-title"
+    aria-hidden="true"
+  >
+    <div class="if-modal__content">
+      <header class="if-modal__header">
+        <div>
+          <p class="eyebrow">Exportar Gestiona</p>
+          <h3 id="gestiona-modal-title">Configura el código Gestiona</h3>
+        </div>
+        <button id="gestiona-modal-close" class="icon-btn" aria-label="Cerrar modal">×</button>
+      </header>
+      <form id="gestiona-form" class="if-form">
+        <label class="field field--inline">
+          <span>¿Usar nombres de polígonos como referencia?</span>
+          <input id="use-gestiona-names" name="useGestionaNames" type="checkbox" />
+        </label>
+        <label class="field">
+          <span>Referencia (campo de valores)</span>
+          <input
+            id="gestiona-reference"
+            name="gestionaReference"
+            type="text"
+            placeholder="Ej. Referencia"
+            required
+          />
+        </label>
+        <label class="field">
+          <span>Referencia campo coordenadas</span>
+          <input
+            id="gestiona-coords"
+            name="gestionaCoords"
+            type="text"
+            placeholder="Ej. ReferenciaCampoCoordenadas"
+            required
+          />
+        </label>
+        <div id="gestiona-values" class="polygon-values" aria-live="polite"></div>
+        <p id="gestiona-values-helper" class="helper helper--compact">
+          Activa los valores manuales si quieres definir un valor de referencia distinto por polígono.
+        </p>
+        <div class="if-form__actions">
+          <button type="button" id="gestiona-cancel" class="ghost">Cancelar</button>
+          <button type="submit" class="primary">Generar y copiar Gestiona</button>
         </div>
       </form>
     </div>
