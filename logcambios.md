@@ -77,3 +77,7 @@
 - Nuevo modal de exportación Gestiona que genera secciones condicionadas por polígono con campos de referencia y coordenadas configurables.
 - Botones dedicados para lanzar la exportación Gestiona en modos simplificado o completo y copiar el código resultante.
 - Validaciones equivalentes al flujo IF que permiten reutilizar los nombres de los polígonos como valores de referencia o definirlos manualmente.
+
+## v1.16.0
+- Normalización de los nombres de sección en el exportador Gestiona para que se generen en mayúsculas y sin separadores superfluos.
+- Limpieza de los valores del selector para quitar tildes y espacios, y aplicar el operador de igualdad sin espacios intermedios.
