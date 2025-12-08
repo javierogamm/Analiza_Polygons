@@ -108,6 +108,10 @@
             <button id="copy-if-complete-btn" class="ghost">IF completo</button>
           </div>
           <div class="export-group">
+            <button id="copy-pick-simplified-btn" class="ghost">PickMatch simplificado</button>
+            <button id="copy-pick-complete-btn" class="ghost">PickMatch completo</button>
+          </div>
+          <div class="export-group">
             <button id="copy-gestiona-simplified-btn" class="ghost">Gestiona simplificado</button>
             <button id="copy-gestiona-complete-btn" class="ghost">Gestiona completo</button>
           </div>
@@ -119,14 +123,18 @@
         <p><strong>Vista previa IF</strong></p>
         <pre id="if-preview" aria-live="polite" class="output soft">Genera una expresión IF desde el modal para verla aquí.</pre>
       </div>
+      <div class="if-preview">
+        <p><strong>Vista previa PickMatch</strong></p>
+        <pre id="pick-preview" aria-live="polite" class="output soft">Genera una expresión PickMatch desde el modal para verla aquí.</pre>
+      </div>
     </section>
   </main>
 
-  <div id="if-modal" class="if-modal" role="dialog" aria-modal="true" aria-labelledby="if-modal-title" aria-hidden="true">
-    <div class="if-modal__content">
-      <header class="if-modal__header">
-        <div>
-          <p class="eyebrow">Exportar IF</p>
+    <div id="if-modal" class="if-modal" role="dialog" aria-modal="true" aria-labelledby="if-modal-title" aria-hidden="true">
+      <div class="if-modal__content">
+        <header class="if-modal__header">
+          <div>
+            <p class="eyebrow">Exportar IF</p>
           <h3 id="if-modal-title">Configura la expresión IF para Qlik</h3>
         </div>
         <button id="if-modal-close" class="icon-btn" aria-label="Cerrar modal">×</button>
@@ -147,6 +155,36 @@
         <div class="if-form__actions">
           <button type="button" id="if-cancel" class="ghost">Cancelar</button>
           <button type="submit" class="primary">Generar y copiar IF</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="pick-modal" class="if-modal" role="dialog" aria-modal="true" aria-labelledby="pick-modal-title" aria-hidden="true">
+    <div class="if-modal__content">
+      <header class="if-modal__header">
+        <div>
+          <p class="eyebrow">Exportar PickMatch</p>
+          <h3 id="pick-modal-title">Configura la expresión PickMatch para Qlik</h3>
+        </div>
+        <button id="pick-modal-close" class="icon-btn" aria-label="Cerrar modal">×</button>
+      </header>
+      <form id="pick-form" class="if-form">
+        <label class="field field--inline">
+          <span>¿Usar valores de nombre de los polígonos?</span>
+          <input id="use-pick-names" name="usePickNames" type="checkbox" />
+        </label>
+        <label class="field">
+          <span>Campo de referencia para Match</span>
+          <input id="pick-reference" name="pickReference" type="text" placeholder="Ej. ReferenciaCampo" required />
+        </label>
+        <div id="pick-values" class="polygon-values" aria-live="polite"></div>
+        <p id="pick-values-helper" class="helper helper--compact">
+          Activa los valores manuales si prefieres elegir un valor diferente para cada polígono.
+        </p>
+        <div class="if-form__actions">
+          <button type="button" id="pick-cancel" class="ghost">Cancelar</button>
+          <button type="submit" class="primary">Generar y copiar PickMatch</button>
         </div>
       </form>
     </div>
