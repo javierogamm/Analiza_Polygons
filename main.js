@@ -11,12 +11,15 @@ const copyQlikSimplifiedBtn = document.getElementById('copy-qlik-simplified-btn'
 const copyQlikCompleteBtn = document.getElementById('copy-qlik-complete-btn');
 const copyIfSimplifiedBtn = document.getElementById('copy-if-simplified-btn');
 const copyIfCompleteBtn = document.getElementById('copy-if-complete-btn');
+const copyPickSimplifiedBtn = document.getElementById('copy-pick-simplified-btn');
+const copyPickCompleteBtn = document.getElementById('copy-pick-complete-btn');
 const copyGestionaSimplifiedBtn = document.getElementById('copy-gestiona-simplified-btn');
 const copyGestionaCompleteBtn = document.getElementById('copy-gestiona-complete-btn');
 const resetBtn = document.getElementById('reset-btn');
 const status = document.getElementById('copy-status');
 const mapStatus = document.getElementById('map-status');
 const ifPreview = document.getElementById('if-preview');
+const pickPreview = document.getElementById('pick-preview');
 const ifModal = document.getElementById('if-modal');
 const ifModalClose = document.getElementById('if-modal-close');
 const ifCancel = document.getElementById('if-cancel');
@@ -25,6 +28,14 @@ const thesaurusNameInput = document.getElementById('thesaurus-name');
 const polygonValuesContainer = document.getElementById('polygon-values');
 const polygonValuesHelper = document.getElementById('polygon-values-helper');
 const usePolygonNamesCheckbox = document.getElementById('use-polygon-names');
+const pickModal = document.getElementById('pick-modal');
+const pickModalClose = document.getElementById('pick-modal-close');
+const pickCancel = document.getElementById('pick-cancel');
+const pickForm = document.getElementById('pick-form');
+const pickReferenceInput = document.getElementById('pick-reference');
+const pickValuesContainer = document.getElementById('pick-values');
+const pickValuesHelper = document.getElementById('pick-values-helper');
+const usePickNamesCheckbox = document.getElementById('use-pick-names');
 const gestionaModal = document.getElementById('gestiona-modal');
 const gestionaModalClose = document.getElementById('gestiona-modal-close');
 const gestionaCancel = document.getElementById('gestiona-cancel');
@@ -52,7 +63,9 @@ let drawControl;
 let lastFormatted = '';
 let lastPolygons = { simplified: [], original: [] };
 let lastIfExpression = { simplified: '', original: '' };
+let lastPickExpression = { simplified: '', original: '' };
 let currentIfMode = 'simplified';
+let currentPickMode = 'simplified';
 let currentGestionaMode = 'simplified';
 
 initMap();
@@ -159,6 +172,7 @@ function updateOutput() {
 
   if (!hasPolygons) {
     lastIfExpression = { simplified: '', original: '' };
+    lastPickExpression = { simplified: '', original: '' };
   }
 
   const formatted = formatGeometries(simplifiedPolygons);
@@ -167,6 +181,7 @@ function updateOutput() {
   status.textContent = '';
   toggleExportButtons(hasPolygons);
   refreshIfPreview();
+  refreshPickPreview();
 }
 
 function formatGeometries(polygons) {
@@ -512,6 +527,8 @@ const copyActions = [
   { element: copyHeroCompleteBtn, mode: 'original', handler: copyFormattedPolygons },
   { element: copyQlikSimplifiedBtn, mode: 'simplified', handler: copyQlikExport },
   { element: copyQlikCompleteBtn, mode: 'original', handler: copyQlikExport },
+  { element: copyPickSimplifiedBtn, mode: 'simplified', handler: openPickModal },
+  { element: copyPickCompleteBtn, mode: 'original', handler: openPickModal },
   { element: copyGestionaSimplifiedBtn, mode: 'simplified', handler: openGestionaModal },
   { element: copyGestionaCompleteBtn, mode: 'original', handler: openGestionaModal },
 ];
@@ -551,10 +568,13 @@ toggleOriginalCheckbox?.addEventListener('change', applyOriginalVisibility);
 toggleSimplifiedCheckbox?.addEventListener('change', applySimplifiedVisibility);
 toggleNamesCheckbox?.addEventListener('change', applyNameVisibility);
 usePolygonNamesCheckbox?.addEventListener('change', updatePolygonValueVisibility);
+usePickNamesCheckbox?.addEventListener('change', updatePickValueVisibility);
 useGestionaNamesCheckbox?.addEventListener('change', updateGestionaValueVisibility);
 
 ifModalClose?.addEventListener('click', closeIfModal);
 ifCancel?.addEventListener('click', closeIfModal);
+pickModalClose?.addEventListener('click', closePickModal);
+pickCancel?.addEventListener('click', closePickModal);
 gestionaModalClose?.addEventListener('click', closeGestionaModal);
 gestionaCancel?.addEventListener('click', closeGestionaModal);
 
@@ -567,6 +587,12 @@ ifModal?.addEventListener('click', (event) => {
 gestionaModal?.addEventListener('click', (event) => {
   if (event.target === gestionaModal) {
     closeGestionaModal();
+  }
+});
+
+pickModal?.addEventListener('click', (event) => {
+  if (event.target === pickModal) {
+    closePickModal();
   }
 });
 
@@ -651,6 +677,47 @@ gestionaForm?.addEventListener('submit', async (event) => {
   }
 });
 
+pickForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const polygons = getPolygonsByMode(currentPickMode);
+  if (!polygons.length) {
+    status.textContent = 'Añade un polígono primero';
+    status.style.color = '#e11d48';
+    logMessage('No hay polígonos para generar condicionales PickMatch.', 'warn');
+    closePickModal();
+    return;
+  }
+
+  const referenceField = pickReferenceInput?.value.trim();
+  if (!referenceField) {
+    status.textContent = 'Campo de referencia requerido';
+    status.style.color = '#e11d48';
+    logMessage('Falta el campo de referencia para generar el PickMatch.', 'warn');
+    return;
+  }
+
+  const usePolygonNames = usePickNamesCheckbox?.checked;
+  const values = usePolygonNames ? derivePolygonNameValues(currentPickMode) : collectPickValues();
+  if (!values) return;
+
+  const expression = buildPickMatchExport(referenceField, polygons, values);
+
+  try {
+    await navigator.clipboard.writeText(expression);
+    status.textContent = `PickMatch (${getModeLabel(currentPickMode)}) exportado`;
+    status.style.color = '#16a34a';
+    lastPickExpression[currentPickMode] = expression;
+    refreshPickPreview();
+    closePickModal();
+    logMessage(`Expresión PickMatch de Qlik copiada en modo ${getModeLabel(currentPickMode)}.`);
+  } catch (error) {
+    status.textContent = 'No se pudo copiar';
+    status.style.color = '#e11d48';
+    logMessage('El navegador no permitió copiar el PickMatch de Qlik.', 'error');
+  }
+});
+
 function setMapStatus(message, type) {
   mapStatus.textContent = message;
   mapStatus.style.color = type === 'success' ? '#16a34a' : type === 'error' ? '#e11d48' : '#2563eb';
@@ -692,6 +759,18 @@ function buildConditionalIfExport(thesaurusName, polygons, values) {
     .join('\n');
 
   return `${joined}${closing}`;
+}
+
+function buildPickMatchExport(referenceField, polygons, values) {
+  if (!referenceField || polygons.length !== values.length) return '';
+  const pretty = true;
+
+  const matchValues = values.map((value) => `'${value}'`).join(',\n        ');
+  const polygonStrings = polygons
+    .map(({ coords }) => buildPolygonString(coords, { pretty }))
+    .join(',\n    ');
+
+  return `Pick(\n    Match(${referenceField},\n        ${matchValues}\n    ),\n    ${polygonStrings}\n)`;
 }
 
 function buildGestionaExport(referenceField, coordsField, polygons, values) {
@@ -745,6 +824,8 @@ function toggleExportButtons(enabled) {
     copyQlikCompleteBtn,
     copyIfSimplifiedBtn,
     copyIfCompleteBtn,
+    copyPickSimplifiedBtn,
+    copyPickCompleteBtn,
     copyGestionaSimplifiedBtn,
     copyGestionaCompleteBtn,
   ];
@@ -782,6 +863,29 @@ function closeIfModal() {
   ifModal?.setAttribute('aria-hidden', 'true');
   ifModal?.classList.remove('open');
   ifForm?.reset();
+}
+
+function openPickModal(mode = 'simplified') {
+  currentPickMode = mode;
+  const polygons = getPolygonsByMode(mode);
+  if (!polygons.length) {
+    status.textContent = 'Añade un polígono primero';
+    status.style.color = '#e11d48';
+    logMessage('No hay polígonos para generar condicionales PickMatch.', 'warn');
+    return;
+  }
+
+  renderPickValueInputs(mode);
+  updatePickValueVisibility();
+  pickModal?.setAttribute('aria-hidden', 'false');
+  pickModal?.classList.add('open');
+  pickReferenceInput?.focus();
+}
+
+function closePickModal() {
+  pickModal?.setAttribute('aria-hidden', 'true');
+  pickModal?.classList.remove('open');
+  pickForm?.reset();
 }
 
 function openGestionaModal(mode = 'simplified') {
@@ -834,12 +938,50 @@ function renderPolygonValueInputs(mode = 'simplified') {
   });
 }
 
+function renderPickValueInputs(mode = 'simplified') {
+  if (!pickValuesContainer) return;
+  pickValuesContainer.innerHTML = '';
+
+  const polygons = getPolygonsByMode(mode);
+
+  polygons.forEach(({ name }, index) => {
+    const label = buildPolygonLabel(name, index);
+    const wrapper = document.createElement('label');
+    wrapper.className = 'field';
+
+    const span = document.createElement('span');
+    span.textContent = `Valor para ${label}`;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.required = true;
+    input.name = `pick-${index + 1}`;
+    input.placeholder = `Valor PickMatch ${label}`;
+    input.dataset.label = label;
+
+    wrapper.appendChild(span);
+    wrapper.appendChild(input);
+    pickValuesContainer.appendChild(wrapper);
+  });
+}
+
 function updatePolygonValueVisibility() {
   if (!polygonValuesContainer || !polygonValuesHelper) return;
   const usingNames = usePolygonNamesCheckbox?.checked;
   polygonValuesContainer.classList.toggle('is-hidden', !!usingNames);
   polygonValuesHelper.classList.toggle('is-hidden', !!usingNames);
   const inputs = polygonValuesContainer.querySelectorAll('input');
+  inputs.forEach((input) => {
+    input.required = !usingNames;
+  });
+}
+
+function updatePickValueVisibility() {
+  if (!pickValuesContainer || !pickValuesHelper) return;
+  const usingNames = usePickNamesCheckbox?.checked;
+  pickValuesContainer.classList.toggle('is-hidden', !!usingNames);
+  pickValuesHelper.classList.toggle('is-hidden', !!usingNames);
+  const inputs = pickValuesContainer.querySelectorAll('input');
   inputs.forEach((input) => {
     input.required = !usingNames;
   });
@@ -857,6 +999,27 @@ function collectPolygonValues() {
       status.textContent = 'Cada polígono necesita un valor';
       status.style.color = '#e11d48';
       logMessage(`Falta el valor de tesauro para ${label}.`, 'warn');
+      input.focus();
+      return null;
+    }
+    values.push(value);
+  }
+
+  return values;
+}
+
+function collectPickValues() {
+  if (!pickValuesContainer) return null;
+  const inputs = Array.from(pickValuesContainer.querySelectorAll('input'));
+
+  const values = [];
+  for (const input of inputs) {
+    const value = input.value.trim();
+    if (!value) {
+      const label = input.dataset.label || input.name;
+      status.textContent = 'Cada polígono necesita un valor para Match';
+      status.style.color = '#e11d48';
+      logMessage(`Falta el valor PickMatch para ${label}.`, 'warn');
       input.focus();
       return null;
     }
@@ -949,6 +1112,26 @@ function refreshIfPreview() {
   }
 
   ifPreview.textContent = parts.join('\n\n');
+}
+
+function refreshPickPreview() {
+  if (!pickPreview) return;
+  const parts = [];
+
+  if (lastPickExpression.simplified) {
+    parts.push(`Simplificado:\n${lastPickExpression.simplified}`);
+  }
+
+  if (lastPickExpression.original) {
+    parts.push(`Completo:\n${lastPickExpression.original}`);
+  }
+
+  if (!parts.length) {
+    pickPreview.textContent = 'Genera una expresión PickMatch desde el modal para verla aquí.';
+    return;
+  }
+
+  pickPreview.textContent = parts.join('\n\n');
 }
 
 function logMessage(message, level = 'info') {

@@ -81,3 +81,8 @@
 ## v1.16.0
 - Normalización de los nombres de sección en el exportador Gestiona para que se generen en mayúsculas y sin separadores superfluos.
 - Limpieza de los valores del selector para quitar tildes y espacios, y aplicar el operador de igualdad sin espacios intermedios.
+
+## v1.17.0
+- Nuevo modal de exportación PickMatch para Qlik que reutiliza los valores de polígonos o permite definirlos manualmente en modos simplificado o completo.
+- Botones dedicados para lanzar y copiar el PickMatch, con vista previa persistente junto a la del IF y validaciones equivalentes.
+- Generación de la expresión PickMatch con formato legible que respeta la sintaxis `Pick(Match(...), coordenadas...)` sin afectar el mapa ni el resto de exportaciones.
