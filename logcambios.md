@@ -98,3 +98,6 @@
 
 ## v1.20.0
 - Los CSV descargados incluyen el prefijo BOM para forzar la codificación UTF-8 en planillas y evitar caracteres corruptos.
+
+## v1.21.0
+- El botón de dibujar polígonos muestra un ícono SVG propio incrustado para que siempre sea visible sobre el mapa.
