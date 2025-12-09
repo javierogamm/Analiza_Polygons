@@ -95,3 +95,6 @@
 ## v1.19.0
 - La exportación a CSV ahora genera un archivo descargable con nombres y coordenadas en lugar de copiar al portapapeles.
 - El botón de dibujar polígonos en el mapa usa un ícono tipo pin para que la herramienta sea reconocible.
+
+## v1.20.0
+- Los CSV descargados incluyen el prefijo BOM para forzar la codificación UTF-8 en planillas y evitar caracteres corruptos.

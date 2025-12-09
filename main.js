@@ -530,7 +530,8 @@ function downloadCsvExport(mode = 'simplified') {
   }
 
   try {
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const csvWithBom = `\uFEFF${csv}`;
+    const blob = new Blob([csvWithBom], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     const suffix = mode === 'simplified' ? 'simplificados' : 'completos';
