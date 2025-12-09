@@ -86,3 +86,8 @@
 - Nuevo modal de exportación PickMatch para Qlik que reutiliza los valores de polígonos o permite definirlos manualmente en modos simplificado o completo.
 - Botones dedicados para lanzar y copiar el PickMatch, con vista previa persistente junto a la del IF y validaciones equivalentes.
 - Generación de la expresión PickMatch con formato legible que respeta la sintaxis `Pick(Match(...), coordenadas...)` sin afectar el mapa ni el resto de exportaciones.
+
+## v1.18.0
+- Columna lateral de exportación junto al mapa con todos los métodos agrupados primero en versión simplificada y luego completa.
+- Nueva exportación a CSV que incluye el nombre del polígono y su geometría compacta lista para pegar en planillas.
+- Visibilidad por defecto ajustada para mostrar solo las geometrías simplificadas, manteniendo ocultos los nombres y los polígonos originales al cargar.

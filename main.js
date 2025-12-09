@@ -5,8 +5,6 @@ const IMPORT_SIMPLIFIED_STYLE = { color: '#16a34a', weight: 3, fillOpacity: 0.2 
 const output = document.getElementById('output');
 const copyBtn = document.getElementById('copy-btn');
 const copyCompleteBtn = document.getElementById('copy-complete-btn');
-const copyHeroSimplifiedBtn = document.getElementById('copy-hero-simplified');
-const copyHeroCompleteBtn = document.getElementById('copy-hero-complete');
 const copyQlikSimplifiedBtn = document.getElementById('copy-qlik-simplified-btn');
 const copyQlikCompleteBtn = document.getElementById('copy-qlik-complete-btn');
 const copyIfSimplifiedBtn = document.getElementById('copy-if-simplified-btn');
@@ -15,6 +13,8 @@ const copyPickSimplifiedBtn = document.getElementById('copy-pick-simplified-btn'
 const copyPickCompleteBtn = document.getElementById('copy-pick-complete-btn');
 const copyGestionaSimplifiedBtn = document.getElementById('copy-gestiona-simplified-btn');
 const copyGestionaCompleteBtn = document.getElementById('copy-gestiona-complete-btn');
+const copyCsvSimplifiedBtn = document.getElementById('copy-csv-simplified-btn');
+const copyCsvCompleteBtn = document.getElementById('copy-csv-complete-btn');
 const resetBtn = document.getElementById('reset-btn');
 const status = document.getElementById('copy-status');
 const mapStatus = document.getElementById('map-status');
@@ -520,17 +520,36 @@ async function copyQlikExport(mode = 'simplified') {
   }
 }
 
+async function copyCsvExport(mode = 'simplified') {
+  const polygons = getPolygonsByMode(mode);
+  const csv = buildCsvExport(polygons);
+  if (!csv) {
+    setStatus('Añade un polígono primero', 'error');
+    logMessage('No hay polígonos para exportar a CSV.', 'warn');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(csv);
+    setStatus(`CSV (${getModeLabel(mode)}) copiado`, 'success');
+    logMessage(`CSV generado en modo ${getModeLabel(mode)} y copiado al portapapeles.`);
+  } catch (error) {
+    setStatus('No se pudo copiar', 'error');
+    logMessage('El navegador no permitió copiar el CSV.', 'error');
+  }
+}
+
 const copyActions = [
   { element: copyBtn, mode: 'simplified', handler: copyFormattedPolygons },
   { element: copyCompleteBtn, mode: 'original', handler: copyFormattedPolygons },
-  { element: copyHeroSimplifiedBtn, mode: 'simplified', handler: copyFormattedPolygons },
-  { element: copyHeroCompleteBtn, mode: 'original', handler: copyFormattedPolygons },
   { element: copyQlikSimplifiedBtn, mode: 'simplified', handler: copyQlikExport },
   { element: copyQlikCompleteBtn, mode: 'original', handler: copyQlikExport },
   { element: copyPickSimplifiedBtn, mode: 'simplified', handler: openPickModal },
   { element: copyPickCompleteBtn, mode: 'original', handler: openPickModal },
   { element: copyGestionaSimplifiedBtn, mode: 'simplified', handler: openGestionaModal },
   { element: copyGestionaCompleteBtn, mode: 'original', handler: openGestionaModal },
+  { element: copyCsvSimplifiedBtn, mode: 'simplified', handler: copyCsvExport },
+  { element: copyCsvCompleteBtn, mode: 'original', handler: copyCsvExport },
 ];
 
 copyActions.forEach(({ element, mode, handler }) => {
@@ -744,6 +763,29 @@ function buildPolygonString(coords, options = {}) {
   return `'${wrapped}'`;
 }
 
+function buildCsvExport(polygons) {
+  if (!polygons.length) return '';
+  const header = ['Nombre de polígono', 'Polígono'];
+  const rows = polygons.map(({ coords, name }, index) => {
+    const label = buildPolygonLabel(name, index);
+    const serialized = `'${buildCompactPolygonString(coords)}'`;
+    return [label, serialized];
+  });
+
+  return [header, ...rows].map((cells) => cells.map(escapeCsvCell).join(',')).join('\n');
+}
+
+function buildCompactPolygonString(coords) {
+  const pairs = coords.map(([lng, lat]) => `[${lng},${lat}]`).join(',');
+  return `[[${pairs}]]`;
+}
+
+function escapeCsvCell(value) {
+  const asString = String(value ?? '');
+  const escaped = asString.replace(/"/g, '""');
+  return `"${escaped}"`;
+}
+
 function buildConditionalIfExport(thesaurusName, polygons, values) {
   if (!polygons.length || polygons.length !== values.length) return '';
   const pretty = true;
@@ -818,8 +860,6 @@ function toggleExportButtons(enabled) {
   const buttons = [
     copyBtn,
     copyCompleteBtn,
-    copyHeroSimplifiedBtn,
-    copyHeroCompleteBtn,
     copyQlikSimplifiedBtn,
     copyQlikCompleteBtn,
     copyIfSimplifiedBtn,
@@ -828,6 +868,8 @@ function toggleExportButtons(enabled) {
     copyPickCompleteBtn,
     copyGestionaSimplifiedBtn,
     copyGestionaCompleteBtn,
+    copyCsvSimplifiedBtn,
+    copyCsvCompleteBtn,
   ];
 
   buttons.forEach((btn) => {

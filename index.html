@@ -29,11 +29,6 @@
       <p class="lead">
         Dibuja polígonos directamente sobre un mapa embebido y copia las coordenadas con el formato que prefieras.
       </p>
-      <div class="cta-row">
-        <button id="copy-hero-simplified" class="primary">Copiar simplificado</button>
-        <button id="copy-hero-complete" class="ghost">Copiar completo</button>
-        <button id="reset-btn" class="ghost">Limpiar mapa</button>
-      </div>
     </div>
   </header>
 
@@ -51,28 +46,55 @@
         </div>
         <span id="map-status" class="status"></span>
       </div>
-      <div id="map" aria-label="Mapa de dibujo"></div>
-      <div class="visibility-toggles" aria-label="Alternar visibilidad de polígonos importados">
-        <label class="toggle">
-          <input id="toggle-original" type="checkbox" checked />
-          <span>Mostrar polígonos originales (GeoJSON)</span>
-        </label>
-        <label class="toggle">
-          <input id="toggle-simplified" type="checkbox" checked />
-          <span>Mostrar polígonos simplificados</span>
-        </label>
-        <label class="toggle">
-          <input id="toggle-names" type="checkbox" checked />
-          <span>Mostrar nombres en el mapa</span>
-        </label>
-      </div>
-      <div class="helper">
-        <p><strong>Cómo usarlo</strong></p>
-        <ol>
-          <li>Selecciona la herramienta de polígono y haz clic en el mapa para definir cada vértice.</li>
-          <li>El panel inferior lista cada polígono numerado con sus coordenadas.</li>
-          <li>Copia el resultado y pégalo en tu flujo de trabajo.</li>
-        </ol>
+      <div class="map-layout">
+        <div class="map-wrapper">
+          <div id="map" aria-label="Mapa de dibujo"></div>
+          <div class="visibility-toggles" aria-label="Alternar visibilidad de polígonos importados">
+            <label class="toggle">
+              <input id="toggle-original" type="checkbox" />
+              <span>Mostrar polígonos originales (GeoJSON)</span>
+            </label>
+            <label class="toggle">
+              <input id="toggle-simplified" type="checkbox" checked />
+              <span>Mostrar polígonos simplificados</span>
+            </label>
+            <label class="toggle">
+              <input id="toggle-names" type="checkbox" />
+              <span>Mostrar nombres en el mapa</span>
+            </label>
+          </div>
+          <div class="helper">
+            <p><strong>Cómo usarlo</strong></p>
+            <ol>
+              <li>Selecciona la herramienta de polígono y haz clic en el mapa para definir cada vértice.</li>
+              <li>El panel inferior lista cada polígono numerado con sus coordenadas.</li>
+              <li>Copia el resultado y pégalo en tu flujo de trabajo.</li>
+            </ol>
+          </div>
+        </div>
+        <aside class="export-sidebar" aria-label="Exportaciones rápidas">
+          <p class="eyebrow">Exportaciones</p>
+          <h3>Polígonos simplificados</h3>
+          <div class="export-column">
+            <button id="copy-btn" class="primary">Copiar simplificado</button>
+            <button id="copy-qlik-simplified-btn" class="ghost emphasis">Qlik simplificado</button>
+            <button id="copy-if-simplified-btn" class="ghost">IF simplificado</button>
+            <button id="copy-pick-simplified-btn" class="ghost">PickMatch simplificado</button>
+            <button id="copy-gestiona-simplified-btn" class="ghost">Gestiona simplificado</button>
+            <button id="copy-csv-simplified-btn" class="ghost">CSV simplificado</button>
+          </div>
+          <h3>Polígonos completos</h3>
+          <div class="export-column">
+            <button id="copy-complete-btn" class="ghost">Copiar completo</button>
+            <button id="copy-qlik-complete-btn" class="ghost">Qlik completo</button>
+            <button id="copy-if-complete-btn" class="ghost">IF completo</button>
+            <button id="copy-pick-complete-btn" class="ghost">PickMatch completo</button>
+            <button id="copy-gestiona-complete-btn" class="ghost">Gestiona completo</button>
+            <button id="copy-csv-complete-btn" class="ghost">CSV completo</button>
+          </div>
+          <button id="reset-btn" class="ghost">Limpiar mapa</button>
+          <span id="copy-status" class="status"></span>
+        </aside>
       </div>
     </section>
 
@@ -93,29 +115,6 @@
         <div>
           <p class="eyebrow">Exportación</p>
           <h2>Coordenadas generadas</h2>
-        </div>
-        <div class="export-controls">
-          <div class="export-group">
-            <button id="copy-btn" class="ghost emphasis">Copiar simplificado</button>
-            <button id="copy-complete-btn" class="ghost">Copiar completo</button>
-          </div>
-          <div class="export-group">
-            <button id="copy-qlik-simplified-btn" class="ghost emphasis">Copiar Qlik simplificado</button>
-            <button id="copy-qlik-complete-btn" class="ghost">Copiar Qlik completo</button>
-          </div>
-          <div class="export-group">
-            <button id="copy-if-simplified-btn" class="ghost">IF simplificado</button>
-            <button id="copy-if-complete-btn" class="ghost">IF completo</button>
-          </div>
-          <div class="export-group">
-            <button id="copy-pick-simplified-btn" class="ghost">PickMatch simplificado</button>
-            <button id="copy-pick-complete-btn" class="ghost">PickMatch completo</button>
-          </div>
-          <div class="export-group">
-            <button id="copy-gestiona-simplified-btn" class="ghost">Gestiona simplificado</button>
-            <button id="copy-gestiona-complete-btn" class="ghost">Gestiona completo</button>
-          </div>
-          <span id="copy-status" class="status"></span>
         </div>
       </header>
       <pre id="output" aria-live="polite" class="output">Crea al menos un polígono para ver sus coordenadas aquí.</pre>
