@@ -520,7 +520,7 @@ async function copyQlikExport(mode = 'simplified') {
   }
 }
 
-async function copyCsvExport(mode = 'simplified') {
+function downloadCsvExport(mode = 'simplified') {
   const polygons = getPolygonsByMode(mode);
   const csv = buildCsvExport(polygons);
   if (!csv) {
@@ -530,12 +530,23 @@ async function copyCsvExport(mode = 'simplified') {
   }
 
   try {
-    await navigator.clipboard.writeText(csv);
-    setStatus(`CSV (${getModeLabel(mode)}) copiado`, 'success');
-    logMessage(`CSV generado en modo ${getModeLabel(mode)} y copiado al portapapeles.`);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const suffix = mode === 'simplified' ? 'simplificados' : 'completos';
+
+    link.href = url;
+    link.download = `poligonos-${suffix}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    setStatus(`CSV (${getModeLabel(mode)}) descargado`, 'success');
+    logMessage(`CSV generado en modo ${getModeLabel(mode)} y descargado como archivo.`);
   } catch (error) {
-    setStatus('No se pudo copiar', 'error');
-    logMessage('El navegador no permitió copiar el CSV.', 'error');
+    setStatus('No se pudo descargar', 'error');
+    logMessage('El navegador no permitió descargar el CSV.', 'error');
   }
 }
 
@@ -548,8 +559,8 @@ const copyActions = [
   { element: copyPickCompleteBtn, mode: 'original', handler: openPickModal },
   { element: copyGestionaSimplifiedBtn, mode: 'simplified', handler: openGestionaModal },
   { element: copyGestionaCompleteBtn, mode: 'original', handler: openGestionaModal },
-  { element: copyCsvSimplifiedBtn, mode: 'simplified', handler: copyCsvExport },
-  { element: copyCsvCompleteBtn, mode: 'original', handler: copyCsvExport },
+  { element: copyCsvSimplifiedBtn, mode: 'simplified', handler: downloadCsvExport },
+  { element: copyCsvCompleteBtn, mode: 'original', handler: downloadCsvExport },
 ];
 
 copyActions.forEach(({ element, mode, handler }) => {
