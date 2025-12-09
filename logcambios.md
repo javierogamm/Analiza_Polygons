@@ -91,3 +91,7 @@
 - Columna lateral de exportación junto al mapa con todos los métodos agrupados primero en versión simplificada y luego completa.
 - Nueva exportación a CSV que incluye el nombre del polígono y su geometría compacta lista para pegar en planillas.
 - Visibilidad por defecto ajustada para mostrar solo las geometrías simplificadas, manteniendo ocultos los nombres y los polígonos originales al cargar.
+
+## v1.19.0
+- La exportación a CSV ahora genera un archivo descargable con nombres y coordenadas en lugar de copiar al portapapeles.
+- El botón de dibujar polígonos en el mapa usa un ícono tipo pin para que la herramienta sea reconocible.
