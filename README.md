@@ -5,8 +5,10 @@ Aplicación web ligera para dibujar puntos o polígonos sobre un mapa base de Op
 ## Uso
 1. Abre `index.html` en un entorno estático (Vercel, GitHub Pages o un servidor local simple).
 2. Haz clic sobre el mapa para crear puntos rápidos o usa los controles para añadir marcadores y polígonos.
-3. Las coordenadas aparecerán en el panel inferior. Copia el bloque generado con **Copiar coordenadas**.
+3. Las coordenadas aparecerán en el panel inferior. Copia el bloque generado con **Copiar coordenadas** o exporta las geometrías en el formato que necesites.
 4. Usa **Limpiar mapa** para borrar todas las geometrías y empezar de nuevo.
+
+También puedes importar y exportar GeoJSON para reutilizar tus polígonos: carga archivos desde el panel de importación o descarga tus trazos con los botones de **GeoJSON** en la columna de exportaciones.
 
 El mapa utiliza teselas públicas de OpenStreetMap y Leaflet Draw para la creación de geometrías.
 
