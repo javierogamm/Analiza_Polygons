@@ -106,3 +106,8 @@
 - Botones dedicados para exportar los polígonos como GeoJSON en modos simplificado o completo, listos para reimportar.
 - Generación de archivos GeoJSON con el nombre de cada polígono como propiedad y coordenadas cerradas.
 - Documentación actualizada para reflejar el nuevo flujo de importación y exportación GeoJSON.
+
+## v1.23.0
+- Botones de GeoJSON destacados en la barra lateral que descargan directamente el archivo en el mismo formato de importación.
+- Descargas diferenciadas para polígonos simplificados y completos sin pasos intermedios.
+- Documentación ajustada para aclarar el formato `FeatureCollection` listo para reimportar.

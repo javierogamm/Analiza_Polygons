@@ -8,7 +8,7 @@ Aplicación web ligera para dibujar puntos o polígonos sobre un mapa base de Op
 3. Las coordenadas aparecerán en el panel inferior. Copia el bloque generado con **Copiar coordenadas** o exporta las geometrías en el formato que necesites.
 4. Usa **Limpiar mapa** para borrar todas las geometrías y empezar de nuevo.
 
-También puedes importar y exportar GeoJSON para reutilizar tus polígonos: carga archivos desde el panel de importación o descarga tus trazos con los botones de **GeoJSON** en la columna de exportaciones.
+También puedes importar y exportar GeoJSON para reutilizar tus polígonos: carga archivos desde el panel de importación o descarga tus trazos con los botones de **Descargar GeoJSON** en la columna de exportaciones. Se generan archivos `FeatureCollection` listos para reimportar sin transformar el formato.
 
 El mapa utiliza teselas públicas de OpenStreetMap y Leaflet Draw para la creación de geometrías.
 
