@@ -15,6 +15,8 @@ const copyGestionaSimplifiedBtn = document.getElementById('copy-gestiona-simplif
 const copyGestionaCompleteBtn = document.getElementById('copy-gestiona-complete-btn');
 const copyCsvSimplifiedBtn = document.getElementById('copy-csv-simplified-btn');
 const copyCsvCompleteBtn = document.getElementById('copy-csv-complete-btn');
+const exportGeoJsonSimplifiedBtn = document.getElementById('export-geojson-simplified-btn');
+const exportGeoJsonCompleteBtn = document.getElementById('export-geojson-complete-btn');
 const resetBtn = document.getElementById('reset-btn');
 const status = document.getElementById('copy-status');
 const mapStatus = document.getElementById('map-status');
@@ -551,6 +553,39 @@ function downloadCsvExport(mode = 'simplified') {
   }
 }
 
+function downloadGeoJsonExport(mode = 'simplified') {
+  const polygons = getPolygonsByMode(mode);
+  if (!polygons.length) {
+    setStatus('Añade un polígono primero', 'error');
+    logMessage('No hay polígonos para exportar a GeoJSON.', 'warn');
+    return;
+  }
+
+  const geojson = buildGeoJsonExport(polygons);
+
+  try {
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], {
+      type: 'application/geo+json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const suffix = mode === 'simplified' ? 'simplificados' : 'completos';
+
+    link.href = url;
+    link.download = `poligonos-${suffix}.geojson`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    setStatus(`GeoJSON (${getModeLabel(mode)}) descargado`, 'success');
+    logMessage(`GeoJSON generado en modo ${getModeLabel(mode)} listo para reimportar.`);
+  } catch (error) {
+    setStatus('No se pudo descargar', 'error');
+    logMessage('El navegador no permitió descargar el GeoJSON.', 'error');
+  }
+}
+
 const copyActions = [
   { element: copyBtn, mode: 'simplified', handler: copyFormattedPolygons },
   { element: copyCompleteBtn, mode: 'original', handler: copyFormattedPolygons },
@@ -562,6 +597,8 @@ const copyActions = [
   { element: copyGestionaCompleteBtn, mode: 'original', handler: openGestionaModal },
   { element: copyCsvSimplifiedBtn, mode: 'simplified', handler: downloadCsvExport },
   { element: copyCsvCompleteBtn, mode: 'original', handler: downloadCsvExport },
+  { element: exportGeoJsonSimplifiedBtn, mode: 'simplified', handler: downloadGeoJsonExport },
+  { element: exportGeoJsonCompleteBtn, mode: 'original', handler: downloadGeoJsonExport },
 ];
 
 copyActions.forEach(({ element, mode, handler }) => {
@@ -792,6 +829,20 @@ function buildCompactPolygonString(coords) {
   return `[[${pairs}]]`;
 }
 
+function buildGeoJsonExport(polygons) {
+  return {
+    type: 'FeatureCollection',
+    features: polygons.map(({ coords, name }, index) => ({
+      type: 'Feature',
+      properties: { name: buildPolygonLabel(name, index) },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [coords],
+      },
+    })),
+  };
+}
+
 function escapeCsvCell(value) {
   const asString = String(value ?? '');
   const escaped = asString.replace(/"/g, '""');
@@ -882,6 +933,8 @@ function toggleExportButtons(enabled) {
     copyGestionaCompleteBtn,
     copyCsvSimplifiedBtn,
     copyCsvCompleteBtn,
+    exportGeoJsonSimplifiedBtn,
+    exportGeoJsonCompleteBtn,
   ];
 
   buttons.forEach((btn) => {
