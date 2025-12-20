@@ -24,7 +24,7 @@
 <body>
   <header class="hero">
     <div>
-      <p class="eyebrow">Analiza Polygons <span class="version-tag">v1.25.0</span></p>
+      <p class="eyebrow">Analiza Polygons <span class="version-tag">v1.26.0</span></p>
       <h1>Mapa real de OpenStreetMap listo para capturar coordenadas</h1>
       <p class="lead">
         Dibuja polígonos directamente sobre un mapa embebido y copia las coordenadas con el formato que prefieras.
@@ -42,6 +42,8 @@
         <div class="import-controls">
           <input type="file" id="geojson-input" accept=".geojson,.json" hidden />
           <input type="file" id="shp-input" accept=".zip" hidden />
+          <button id="select-shp-area-btn" class="ghost emphasis" type="button">Seleccionar área SHP</button>
+          <button id="import-shp-limited-btn" class="primary" type="button">Cargar N polígonos SHP</button>
           <button id="import-shp-btn" class="primary" type="button">Cargar SHP</button>
           <button id="import-btn" class="ghost" type="button">Importar GeoJSON</button>
           <button id="import-shp-example-btn" class="ghost" type="button">Ejemplo SHP</button>
@@ -201,6 +203,46 @@
         <div class="if-form__actions">
           <button type="button" id="pick-cancel" class="ghost">Cancelar</button>
           <button type="submit" class="primary">Generar y copiar PickMatch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div
+    id="shp-selection-modal"
+    class="if-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="shp-selection-title"
+    aria-hidden="true"
+  >
+    <div class="if-modal__content">
+      <header class="if-modal__header">
+        <div>
+          <p class="eyebrow">Carga SHP por área</p>
+          <h3 id="shp-selection-title">Define cuántos polígonos cargar</h3>
+        </div>
+        <button id="shp-selection-close" class="icon-btn" aria-label="Cerrar modal">×</button>
+      </header>
+      <form id="shp-selection-form" class="if-form">
+        <label class="field">
+          <span>Número de polígonos a cargar</span>
+          <input
+            id="shp-selection-count"
+            name="shpSelectionCount"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="Ej. 25"
+            required
+          />
+        </label>
+        <p id="shp-selection-helper" class="helper helper--compact">
+          Dibuja primero un área con "Seleccionar área SHP" para filtrar los polígonos.
+        </p>
+        <div class="if-form__actions">
+          <button type="button" id="shp-selection-cancel" class="ghost">Cancelar</button>
+          <button type="submit" id="shp-selection-pick-btn" class="primary">Seleccionar SHP</button>
         </div>
       </form>
     </div>

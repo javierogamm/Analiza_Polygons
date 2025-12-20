@@ -51,9 +51,17 @@ const visualLog = document.getElementById('visual-log');
 const importBtn = document.getElementById('import-btn');
 const importExampleBtn = document.getElementById('import-example-btn');
 const importShpBtn = document.getElementById('import-shp-btn');
+const importShpLimitedBtn = document.getElementById('import-shp-limited-btn');
+const selectShpAreaBtn = document.getElementById('select-shp-area-btn');
 const importShpExampleBtn = document.getElementById('import-shp-example-btn');
 const geoJsonInput = document.getElementById('geojson-input');
 const shpInput = document.getElementById('shp-input');
+const shpSelectionModal = document.getElementById('shp-selection-modal');
+const shpSelectionClose = document.getElementById('shp-selection-close');
+const shpSelectionCancel = document.getElementById('shp-selection-cancel');
+const shpSelectionForm = document.getElementById('shp-selection-form');
+const shpSelectionCountInput = document.getElementById('shp-selection-count');
+const shpSelectionHelper = document.getElementById('shp-selection-helper');
 const randomCountInput = document.getElementById('random-count');
 const randomApplyBtn = document.getElementById('random-apply-btn');
 const toggleOriginalCheckbox = document.getElementById('toggle-original');
@@ -66,7 +74,9 @@ let map;
 let drawnItems;
 let importedOriginalGroup;
 let importedSimplifiedGroup;
+let selectionAreaGroup;
 let drawControl;
+let selectionDrawTool;
 let lastFormatted = '';
 let lastPolygons = { simplified: [], original: [] };
 let lastIfExpression = { simplified: '', original: '' };
@@ -75,6 +85,9 @@ let currentIfMode = 'simplified';
 let currentPickMode = 'simplified';
 let currentGestionaMode = 'simplified';
 let importedPolygonCounter = 0;
+let selectionAreaLayer = null;
+let selectionActive = false;
+let pendingShpSelection = null;
 
 initMap();
 updateOutput();
@@ -115,8 +128,10 @@ function initMap() {
 
   importedOriginalGroup = new L.LayerGroup();
   importedSimplifiedGroup = new L.LayerGroup();
+  selectionAreaGroup = new L.FeatureGroup();
   map.addLayer(importedOriginalGroup);
   map.addLayer(importedSimplifiedGroup);
+  map.addLayer(selectionAreaGroup);
   applyOriginalVisibility();
   applySimplifiedVisibility();
   applyNameVisibility();
@@ -153,6 +168,12 @@ function initMap() {
   map.whenReady(() => map.invalidateSize());
 
   map.on(L.Draw.Event.CREATED, ({ layer }) => {
+    if (selectionActive) {
+      selectionActive = false;
+      setSelectionArea(layer);
+      return;
+    }
+
     drawnItems.addLayer(layer);
     const type = layer instanceof L.Polygon ? 'Polígono' : 'Capa';
     logMessage(`${type} creado y añadido al mapa.`);
@@ -163,6 +184,21 @@ function initMap() {
     logMessage('Capas eliminadas del mapa.', 'warn');
     updateOutput();
   });
+
+  map.on(L.Draw.Event.DRAWSTOP, () => {
+    selectionActive = false;
+  });
+
+  selectionDrawTool = new L.Draw.Polygon(map, {
+    allowIntersection: false,
+    showArea: true,
+    shapeOptions: {
+      color: '#f97316',
+      weight: 3,
+      dashArray: '6 6',
+      fillOpacity: 0.12,
+    },
+  });
 }
 
 function removeExistingMap() {
@@ -170,6 +206,21 @@ function removeExistingMap() {
     map.off();
     map.remove();
   }
+}
+
+function setSelectionArea(layer) {
+  if (!layer) return;
+
+  selectionAreaGroup?.clearLayers();
+  selectionAreaLayer = layer;
+  selectionAreaGroup?.addLayer(layer);
+  logMessage('Área SHP seleccionada y lista para filtrar.', 'info');
+}
+
+function getSelectionAreaLatLngs() {
+  if (!selectionAreaLayer || typeof selectionAreaLayer.getLatLngs !== 'function') return [];
+  const latLngs = selectionAreaLayer.getLatLngs();
+  return latLngs[0] || [];
 }
 
 function updateOutput() {
@@ -322,6 +373,26 @@ async function importShpFromFile(file) {
   }
 }
 
+async function importShpFromFileWithArea(file, count, areaLatLngs) {
+  if (!areaLatLngs || !areaLatLngs.length) {
+    logMessage('Debes seleccionar un área antes de cargar polígonos del SHP.', 'warn');
+    return;
+  }
+
+  if (!Number.isFinite(count) || count <= 0) {
+    logMessage('El número de polígonos a cargar debe ser mayor que cero.', 'warn');
+    return;
+  }
+
+  logMessage(`Importando SHP ${file.name} con filtro de área...`);
+  try {
+    const buffer = await file.arrayBuffer();
+    await importShpFromBuffer(buffer, file.name, { areaLatLngs, limit: count });
+  } catch (error) {
+    logMessage(`Error al leer ${file.name}: ${error.message}`, 'error');
+  }
+}
+
 async function importShpFromUrl(url, label = 'SHP remoto') {
   if (typeof shp !== 'function') {
     logMessage('No se encontró la librería para SHP (shpjs).', 'error');
@@ -341,7 +412,7 @@ async function importShpFromUrl(url, label = 'SHP remoto') {
   }
 }
 
-async function importShpFromBuffer(buffer, label) {
+async function importShpFromBuffer(buffer, label, options = {}) {
   try {
     const result = await shp(buffer);
     const layers = normalizeShpResult(result);
@@ -350,9 +421,18 @@ async function importShpFromBuffer(buffer, label) {
       return;
     }
 
+    let remaining = Number.isFinite(options.limit) ? options.limit : null;
+
     layers.forEach(({ data, layerName }) => {
+      if (remaining !== null && remaining <= 0) return;
       const layerLabel = layerName ? `${label} · ${layerName}` : label;
-      processGeoJsonData(data, layerLabel);
+      const added = processGeoJsonData(data, layerLabel, {
+        ...options,
+        limit: remaining,
+      });
+      if (remaining !== null) {
+        remaining = Math.max(0, remaining - added);
+      }
     });
 
     logMessage(`SHP ${label} procesado con ${layers.length} capa(s).`, 'info');
@@ -375,11 +455,36 @@ function normalizeShpResult(result) {
   return [];
 }
 
-function processGeoJsonData(data, label = 'GeoJSON') {
-  const polygons = extractPolygons(data);
+function processGeoJsonData(data, label = 'GeoJSON', options = {}) {
+  const { areaLatLngs, limit } = options;
+  let polygons = extractPolygons(data);
+
+  if (areaLatLngs?.length) {
+    const filtered = filterPolygonsByArea(polygons, areaLatLngs);
+    if (!filtered.length) {
+      logMessage(`No se encontraron polígonos dentro del área en ${label}.`, 'warn');
+      return 0;
+    }
+
+    if (filtered.length !== polygons.length) {
+      logMessage(
+        `Filtro de área aplicado: ${filtered.length} de ${polygons.length} polígonos dentro del área.`,
+        'info'
+      );
+    }
+    polygons = filtered;
+  }
+
+  if (Number.isFinite(limit)) {
+    if (limit < polygons.length) {
+      logMessage(`Se cargarán solo ${limit} polígonos de ${polygons.length} disponibles.`, 'info');
+    }
+    polygons = polygons.slice(0, limit);
+  }
+
   if (!polygons.length) {
     logMessage(`No se encontraron polígonos en ${label}.`, 'warn');
-    return;
+    return 0;
   }
 
   const addedSimplifiedLayers = [];
@@ -428,6 +533,8 @@ function processGeoJsonData(data, label = 'GeoJSON') {
     applySimplifiedVisibility();
     logMessage(`Se añadieron ${addedSimplifiedLayers.length} polígonos desde ${label}.`);
   }
+
+  return addedSimplifiedLayers.length;
 }
 
 function extractPolygons(geojson) {
@@ -481,6 +588,32 @@ function toLatLngRing(ring) {
     })
     .filter(Boolean);
   return ensureClosedPolygon(latLngs);
+}
+
+function filterPolygonsByArea(polygons, areaLatLngs) {
+  const areaBounds = L.latLngBounds(areaLatLngs);
+  return polygons.filter(({ rings }) => {
+    const primaryRing = rings[0] || [];
+    if (!primaryRing.length) return false;
+    if (!primaryRing.every((point) => areaBounds.contains(point))) return false;
+    return primaryRing.every((point) => isPointInsidePolygon(point, areaLatLngs));
+  });
+}
+
+function isPointInsidePolygon(point, polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lng;
+    const yi = polygon[i].lat;
+    const xj = polygon[j].lng;
+    const yj = polygon[j].lat;
+
+    const intersect =
+      yi > point.lat !== yj > point.lat &&
+      point.lng < ((xj - xi) * (point.lat - yi)) / (yj - yi + Number.EPSILON) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
 }
 
 function reducePoints(ring, maxPoints) {
@@ -790,6 +923,8 @@ resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
   importedOriginalGroup?.clearLayers();
   importedSimplifiedGroup?.clearLayers();
+  selectionAreaGroup?.clearLayers();
+  selectionAreaLayer = null;
   updateOutput();
   logMessage('Mapa reiniciado: capas limpiadas.');
 });
@@ -804,6 +939,17 @@ importShpBtn?.addEventListener('click', () => {
   logMessage('Selector de archivo SHP abierto.');
 });
 
+selectShpAreaBtn?.addEventListener('click', () => {
+  if (!selectionDrawTool) return;
+  selectionActive = true;
+  selectionDrawTool.enable();
+  logMessage('Dibuja un área en el mapa para filtrar polígonos SHP.');
+});
+
+importShpLimitedBtn?.addEventListener('click', () => {
+  openShpSelectionModal();
+});
+
 geoJsonInput?.addEventListener('change', (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -814,7 +960,13 @@ geoJsonInput?.addEventListener('change', (event) => {
 shpInput?.addEventListener('change', (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  importShpFromFile(file);
+  if (pendingShpSelection) {
+    const { count, areaLatLngs } = pendingShpSelection;
+    pendingShpSelection = null;
+    importShpFromFileWithArea(file, count, areaLatLngs);
+  } else {
+    importShpFromFile(file);
+  }
   event.target.value = '';
 });
 
@@ -847,6 +999,8 @@ pickModalClose?.addEventListener('click', closePickModal);
 pickCancel?.addEventListener('click', closePickModal);
 gestionaModalClose?.addEventListener('click', closeGestionaModal);
 gestionaCancel?.addEventListener('click', closeGestionaModal);
+shpSelectionClose?.addEventListener('click', closeShpSelectionModal);
+shpSelectionCancel?.addEventListener('click', closeShpSelectionModal);
 
 ifModal?.addEventListener('click', (event) => {
   if (event.target === ifModal) {
@@ -864,6 +1018,33 @@ pickModal?.addEventListener('click', (event) => {
   if (event.target === pickModal) {
     closePickModal();
   }
+});
+
+shpSelectionModal?.addEventListener('click', (event) => {
+  if (event.target === shpSelectionModal) {
+    closeShpSelectionModal();
+  }
+});
+
+shpSelectionForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const count = Number.parseInt(shpSelectionCountInput?.value, 10);
+  if (!Number.isFinite(count) || count <= 0) {
+    logMessage('El número de polígonos debe ser mayor que cero.', 'warn');
+    shpSelectionCountInput?.focus();
+    return;
+  }
+
+  const areaLatLngs = getSelectionAreaLatLngs();
+  if (!areaLatLngs.length) {
+    logMessage('Primero selecciona un área para filtrar los polígonos SHP.', 'warn');
+    return;
+  }
+
+  pendingShpSelection = { count, areaLatLngs };
+  closeShpSelectionModal();
+  shpInput?.click();
+  logMessage(`Listo para cargar ${count} polígonos dentro del área seleccionada.`);
 });
 
 ifForm?.addEventListener('submit', async (event) => {
@@ -1172,6 +1353,24 @@ function closeIfModal() {
   ifModal?.setAttribute('aria-hidden', 'true');
   ifModal?.classList.remove('open');
   ifForm?.reset();
+}
+
+function openShpSelectionModal() {
+  const hasSelection = getSelectionAreaLatLngs().length > 0;
+  if (shpSelectionHelper) {
+    shpSelectionHelper.textContent = hasSelection
+      ? 'Área detectada. Selecciona el número de polígonos a cargar.'
+      : 'Dibuja primero un área con "Seleccionar área SHP" para filtrar los polígonos.';
+  }
+  shpSelectionModal?.setAttribute('aria-hidden', 'false');
+  shpSelectionModal?.classList.add('open');
+  shpSelectionCountInput?.focus();
+}
+
+function closeShpSelectionModal() {
+  shpSelectionModal?.setAttribute('aria-hidden', 'true');
+  shpSelectionModal?.classList.remove('open');
+  shpSelectionForm?.reset();
 }
 
 function openPickModal(mode = 'simplified') {

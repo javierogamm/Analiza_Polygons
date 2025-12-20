@@ -121,3 +121,8 @@
 - Control para mantener solo N polígonos aleatorios entre los importados y descartar el resto con un clic.
 - Selección sincronizada entre capas simplificadas y originales, manteniendo nombres y centrado del mapa.
 - Interfaz actualizada con campo numérico y ayuda contextual para la selección aleatoria.
+
+## v1.26.0
+- Botones dedicados para seleccionar un área en el mapa y cargar N polígonos desde un SHP filtrados por esa zona.
+- Modal de carga por área que solicita el número de polígonos a importar y guía el flujo antes de elegir el ZIP.
+- Filtrado geográfico que valida si los polígonos del SHP están dentro del área dibujada y respeta el límite configurado.
