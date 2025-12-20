@@ -50,7 +50,10 @@ const useGestionaNamesCheckbox = document.getElementById('use-gestiona-names');
 const visualLog = document.getElementById('visual-log');
 const importBtn = document.getElementById('import-btn');
 const importExampleBtn = document.getElementById('import-example-btn');
+const importShpBtn = document.getElementById('import-shp-btn');
+const importShpExampleBtn = document.getElementById('import-shp-example-btn');
 const geoJsonInput = document.getElementById('geojson-input');
+const shpInput = document.getElementById('shp-input');
 const toggleOriginalCheckbox = document.getElementById('toggle-original');
 const toggleSimplifiedCheckbox = document.getElementById('toggle-simplified');
 const toggleNamesCheckbox = document.getElementById('toggle-names');
@@ -285,6 +288,74 @@ function importGeoJsonFromFile(file) {
   };
 
   reader.readAsText(file);
+}
+
+async function importShpFromFile(file) {
+  if (typeof shp !== 'function') {
+    logMessage('No se encontró la librería para SHP (shpjs).', 'error');
+    return;
+  }
+
+  logMessage(`Importando SHP ${file.name}...`);
+  try {
+    const buffer = await file.arrayBuffer();
+    await importShpFromBuffer(buffer, file.name);
+  } catch (error) {
+    logMessage(`Error al leer ${file.name}: ${error.message}`, 'error');
+  }
+}
+
+async function importShpFromUrl(url, label = 'SHP remoto') {
+  if (typeof shp !== 'function') {
+    logMessage('No se encontró la librería para SHP (shpjs).', 'error');
+    return;
+  }
+
+  try {
+    logMessage(`Importando SHP desde ${label}...`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const buffer = await response.arrayBuffer();
+    await importShpFromBuffer(buffer, label);
+  } catch (error) {
+    logMessage(`No se pudo importar ${label}: ${error.message}`, 'error');
+  }
+}
+
+async function importShpFromBuffer(buffer, label) {
+  try {
+    const result = await shp(buffer);
+    const layers = normalizeShpResult(result);
+    if (!layers.length) {
+      logMessage(`No se encontraron capas en ${label}.`, 'warn');
+      return;
+    }
+
+    layers.forEach(({ data, layerName }) => {
+      const layerLabel = layerName ? `${label} · ${layerName}` : label;
+      processGeoJsonData(data, layerLabel);
+    });
+
+    logMessage(`SHP ${label} procesado con ${layers.length} capa(s).`, 'info');
+  } catch (error) {
+    logMessage(`Error al procesar ${label}: ${error.message}`, 'error');
+  }
+}
+
+function normalizeShpResult(result) {
+  if (!result) return [];
+  if (Array.isArray(result)) {
+    return result.map((data) => ({ data, layerName: '' }));
+  }
+  if (result.type) {
+    return [{ data: result, layerName: '' }];
+  }
+  if (typeof result === 'object') {
+    return Object.entries(result).map(([layerName, data]) => ({ data, layerName }));
+  }
+  return [];
 }
 
 function processGeoJsonData(data, label = 'GeoJSON') {
@@ -621,6 +692,11 @@ importBtn?.addEventListener('click', () => {
   logMessage('Selector de archivo GeoJSON abierto.');
 });
 
+importShpBtn?.addEventListener('click', () => {
+  shpInput?.click();
+  logMessage('Selector de archivo SHP abierto.');
+});
+
 geoJsonInput?.addEventListener('change', (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -628,8 +704,22 @@ geoJsonInput?.addEventListener('change', (event) => {
   event.target.value = '';
 });
 
+shpInput?.addEventListener('change', (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  importShpFromFile(file);
+  event.target.value = '';
+});
+
 importExampleBtn?.addEventListener('click', () => {
   importGeoJsonFromUrl('ejemplos/ejemplo.geojson', 'ejemplo.geojson');
+});
+
+importShpExampleBtn?.addEventListener('click', () => {
+  importShpFromUrl(
+    'ejemplosshp/50001uA_50004_14082025_PARCELA.ZIP',
+    '50001uA_50004_14082025_PARCELA.ZIP'
+  );
 });
 
 toggleOriginalCheckbox?.addEventListener('change', applyOriginalVisibility);
