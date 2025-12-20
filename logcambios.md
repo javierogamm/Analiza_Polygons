@@ -126,3 +126,8 @@
 - Botones dedicados para seleccionar un área en el mapa y cargar N polígonos desde un SHP filtrados por esa zona.
 - Modal de carga por área que solicita el número de polígonos a importar y guía el flujo antes de elegir el ZIP.
 - Filtrado geográfico que valida si los polígonos del SHP están dentro del área dibujada y respeta el límite configurado.
+
+## v1.27.0
+- Se eliminaron las comillas simples de inicio y fin en todas las exportaciones de polígonos y CSV.
+- Se añadió un buscador de localidades con OpenStreetMap para centrar y hacer zoom automático en el mapa.
+- Ajustes de interfaz para mostrar el nuevo buscador junto a los controles del mapa.

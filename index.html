@@ -24,7 +24,7 @@
 <body>
   <header class="hero">
     <div>
-      <p class="eyebrow">Analiza Polygons <span class="version-tag">v1.26.0</span></p>
+      <p class="eyebrow">Analiza Polygons <span class="version-tag">v1.27.0</span></p>
       <h1>Mapa real de OpenStreetMap listo para capturar coordenadas</h1>
       <p class="lead">
         Dibuja polígonos directamente sobre un mapa embebido y copia las coordenadas con el formato que prefieras.
@@ -39,6 +39,23 @@
           <p class="eyebrow">Mapa base</p>
           <h2>Dibuja sobre OpenStreetMap</h2>
         </div>
+        <form id="location-form" class="search-controls">
+          <label class="field field--compact">
+            <span>Buscar localidad</span>
+            <div class="search-controls__inputs">
+              <input
+                id="location-input"
+                name="location"
+                type="search"
+                placeholder="Ej. Madrid, España"
+                autocomplete="off"
+                aria-label="Buscar localidad en OpenStreetMap"
+                required
+              />
+              <button id="location-search-btn" class="ghost emphasis" type="submit">Buscar</button>
+            </div>
+          </label>
+        </form>
         <div class="import-controls">
           <input type="file" id="geojson-input" accept=".geojson,.json" hidden />
           <input type="file" id="shp-input" accept=".zip" hidden />
