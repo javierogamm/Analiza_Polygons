@@ -131,3 +131,7 @@
 - Se eliminaron las comillas simples de inicio y fin en todas las exportaciones de polígonos y CSV.
 - Se añadió un buscador de localidades con OpenStreetMap para centrar y hacer zoom automático en el mapa.
 - Ajustes de interfaz para mostrar el nuevo buscador junto a los controles del mapa.
+
+## v1.28.0
+- La exportación Gestiona ahora encapsula el valor `result` entre comillas para respetar el formato esperado por cada polígono.
+- La importación limitada desde SHP selecciona polígonos aleatorios del total disponible para evitar clusters.
