@@ -1,5 +1,9 @@
 # Historial de cambios
 
+## v1.29.0
+- Los polígonos importados desde GeoJSON o SHP heredan el nombre del archivo origen cuando no hay nombre en los atributos.
+- Se conserva el nombre de archivo como etiqueta y base de exportaciones para visualizar correctamente los polígonos importados.
+
 ## v1.0.0
 - Creación inicial de la app estática para dibujar polígonos y convertirlos al formato de Qlik.
 - Interfaz con Leaflet y Leaflet.draw para capturar coordenadas.

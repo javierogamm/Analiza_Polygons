@@ -335,7 +335,7 @@ async function importGeoJsonFromUrl(url, label = 'GeoJSON remoto') {
       throw new Error(`HTTP ${response.status}`);
     }
     const data = await response.json();
-    processGeoJsonData(data, label);
+    processGeoJsonData(data, label, { sourceName: label });
   } catch (error) {
     logMessage(`No se pudo importar ${label}: ${error.message}`, 'error');
   }
@@ -348,7 +348,7 @@ function importGeoJsonFromFile(file) {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      processGeoJsonData(data, file.name);
+      processGeoJsonData(data, file.name, { sourceName: file.name });
     } catch (error) {
       logMessage(`El archivo ${file.name} no es un GeoJSON válido: ${error.message}`, 'error');
     }
@@ -432,6 +432,7 @@ async function importShpFromBuffer(buffer, label, options = {}) {
       const added = processGeoJsonData(data, layerLabel, {
         ...options,
         limit: remaining,
+        sourceName: label,
       });
       if (remaining !== null) {
         remaining = Math.max(0, remaining - added);
@@ -461,6 +462,7 @@ function normalizeShpResult(result) {
 function processGeoJsonData(data, label = 'GeoJSON', options = {}) {
   const { areaLatLngs, limit } = options;
   let polygons = extractPolygons(data);
+  const sourcePolygonName = deriveSourcePolygonName(options.sourceName || label);
 
   if (areaLatLngs?.length) {
     const filtered = filterPolygonsByArea(polygons, areaLatLngs);
@@ -494,7 +496,7 @@ function processGeoJsonData(data, label = 'GeoJSON', options = {}) {
   const addedOriginalLayers = [];
 
   polygons.forEach(({ rings, name }, index) => {
-    const polygonName = name || `Polígono ${index + 1}`;
+    const polygonName = name || sourcePolygonName || `Polígono ${index + 1}`;
     const importToken = createImportToken();
     const simplifiedRings = rings.map((ring) => reducePoints(ring, MAX_IMPORT_POINTS));
 
@@ -650,6 +652,14 @@ function deriveName(properties) {
   }
 
   return '';
+}
+
+function deriveSourcePolygonName(label) {
+  if (!label || typeof label !== 'string') return '';
+  const baseLabel = label.split('·')[0].trim();
+  if (!baseLabel) return '';
+  const parts = baseLabel.split(/[\\/]/);
+  return parts[parts.length - 1] || baseLabel;
 }
 
 function attachPolygonName(layer, name) {
