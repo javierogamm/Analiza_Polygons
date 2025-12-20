@@ -116,3 +116,8 @@
 - Botón dedicado para cargar archivos SHP en ZIP desde el equipo y convertirlos a polígonos visibles en el mapa.
 - Soporte para importar SHP por capas y registrar el procesamiento en el panel de pasos con shpjs.
 - Botón de ejemplo SHP conectado a los ZIP disponibles en `/ejemplosshp` y versión visible en el encabezado.
+
+## v1.25.0
+- Control para mantener solo N polígonos aleatorios entre los importados y descartar el resto con un clic.
+- Selección sincronizada entre capas simplificadas y originales, manteniendo nombres y centrado del mapa.
+- Interfaz actualizada con campo numérico y ayuda contextual para la selección aleatoria.
