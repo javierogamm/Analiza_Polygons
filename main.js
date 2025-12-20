@@ -20,6 +20,9 @@ const exportGeoJsonCompleteBtn = document.getElementById('export-geojson-complet
 const resetBtn = document.getElementById('reset-btn');
 const status = document.getElementById('copy-status');
 const mapStatus = document.getElementById('map-status');
+const locationForm = document.getElementById('location-form');
+const locationInput = document.getElementById('location-input');
+const locationSearchBtn = document.getElementById('location-search-btn');
 const ifPreview = document.getElementById('if-preview');
 const pickPreview = document.getElementById('pick-preview');
 const ifModal = document.getElementById('if-modal');
@@ -919,6 +922,18 @@ copyActions.forEach(({ element, mode, handler }) => {
 copyIfSimplifiedBtn?.addEventListener('click', () => openIfModal('simplified'));
 copyIfCompleteBtn?.addEventListener('click', () => openIfModal('original'));
 
+locationForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const query = locationInput?.value.trim();
+  if (!query) {
+    setMapStatus('Introduce una localidad para buscar.', 'warn');
+    logMessage('La búsqueda de localidad necesita un término.', 'warn');
+    locationInput?.focus();
+    return;
+  }
+  searchLocation(query);
+});
+
 resetBtn.addEventListener('click', () => {
   drawnItems.clearLayers();
   importedOriginalGroup?.clearLayers();
@@ -1171,7 +1186,60 @@ pickForm?.addEventListener('submit', async (event) => {
 
 function setMapStatus(message, type) {
   mapStatus.textContent = message;
-  mapStatus.style.color = type === 'success' ? '#16a34a' : type === 'error' ? '#e11d48' : '#2563eb';
+  mapStatus.style.color =
+    type === 'success' ? '#16a34a' : type === 'error' ? '#e11d48' : type === 'warn' ? '#f59e0b' : '#2563eb';
+}
+
+async function searchLocation(query) {
+  setMapStatus(`Buscando "${query}"...`, 'info');
+  logMessage(`Buscando localidad: ${query}.`);
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent(
+        query,
+      )}`,
+      {
+        headers: {
+          'Accept-Language': 'es',
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const results = await response.json();
+    if (!Array.isArray(results) || results.length === 0) {
+      setMapStatus('No se encontraron resultados.', 'warn');
+      logMessage(`Sin resultados para "${query}".`, 'warn');
+      return;
+    }
+
+    const [result] = results;
+    const lat = Number(result.lat);
+    const lon = Number(result.lon);
+    const label = result.display_name || query;
+    const bounds = Array.isArray(result.boundingbox)
+      ? L.latLngBounds(
+          [Number(result.boundingbox[0]), Number(result.boundingbox[2])],
+          [Number(result.boundingbox[1]), Number(result.boundingbox[3])],
+        )
+      : null;
+
+    if (bounds && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40] });
+    } else if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      map.setView([lat, lon], 14, { animate: true });
+    }
+
+    setMapStatus(`Ubicado: ${label}`, 'success');
+    logMessage(`Mapa centrado en ${label}.`, 'success');
+  } catch (error) {
+    setMapStatus('No se pudo buscar la localidad.', 'error');
+    logMessage(`Error buscando "${query}": ${error.message}`, 'error');
+  }
 }
 
 function buildPolygonsExport(polygons) {
@@ -1192,7 +1260,7 @@ function buildPolygonString(coords, options = {}) {
   const separator = pretty ? ',\n  ' : ',';
   const pairs = coords.map(([lng, lat]) => `[${lng}, ${lat}]`).join(separator);
   const wrapped = `[[${pairs}]]`;
-  return `'${wrapped}'`;
+  return wrapped;
 }
 
 function buildCsvExport(polygons) {
@@ -1200,7 +1268,7 @@ function buildCsvExport(polygons) {
   const header = ['Nombre de polígono', 'Polígono'];
   const rows = polygons.map(({ coords, name }, index) => {
     const label = buildPolygonLabel(name, index);
-    const serialized = `'${buildCompactPolygonString(coords)}'`;
+    const serialized = buildCompactPolygonString(coords);
     return [label, serialized];
   });
 
@@ -1238,7 +1306,7 @@ function buildConditionalIfExport(thesaurusName, polygons, values) {
 
   const clauses = polygons.map(({ coords }, index) => {
     const serialized = buildPolygonString(coords, { pretty });
-    return `IF(${thesaurusName} ='${values[index]}', ${serialized}`;
+    return `IF(${thesaurusName} =${values[index]}, ${serialized}`;
   });
 
   const closing = ')'.repeat(clauses.length);
@@ -1253,7 +1321,7 @@ function buildPickMatchExport(referenceField, polygons, values) {
   if (!referenceField || polygons.length !== values.length) return '';
   const pretty = true;
 
-  const matchValues = values.map((value) => `'${value}'`).join(',\n        ');
+  const matchValues = values.join(',\n        ');
   const polygonStrings = polygons
     .map(({ coords }) => buildPolygonString(coords, { pretty }))
     .join(',\n    ');
