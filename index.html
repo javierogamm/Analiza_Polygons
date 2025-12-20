@@ -24,7 +24,7 @@
 <body>
   <header class="hero">
     <div>
-      <p class="eyebrow">Analiza Polygons <span class="version-tag">v1.24.0</span></p>
+      <p class="eyebrow">Analiza Polygons <span class="version-tag">v1.25.0</span></p>
       <h1>Mapa real de OpenStreetMap listo para capturar coordenadas</h1>
       <p class="lead">
         Dibuja polígonos directamente sobre un mapa embebido y copia las coordenadas con el formato que prefieras.
@@ -65,6 +65,18 @@
               <input id="toggle-names" type="checkbox" />
               <span>Mostrar nombres en el mapa</span>
             </label>
+          </div>
+          <div class="random-selection" aria-label="Selección aleatoria de polígonos importados">
+            <label class="field">
+              <span>Quedarme con N polígonos aleatorios</span>
+              <div class="random-selection__controls">
+                <input id="random-count" type="number" min="1" step="1" placeholder="Ej. 10" />
+                <button id="random-apply-btn" class="ghost" type="button">Aplicar selección</button>
+              </div>
+            </label>
+            <p class="helper helper--compact">
+              Se aplica sobre polígonos importados (SHP/GeoJSON) y descarta el resto.
+            </p>
           </div>
           <div class="helper">
             <p><strong>Cómo usarlo</strong></p>

@@ -184,6 +184,26 @@ button.ghost {
   border: 1px solid var(--ink-200);
 }
 
+.random-selection {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: calc(var(--radius) - 8px);
+  border: 1px solid var(--ink-200);
+}
+
+.random-selection__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.random-selection__controls input {
+  max-width: 140px;
+}
+
 .toggle {
   display: inline-flex;
   gap: 8px;
