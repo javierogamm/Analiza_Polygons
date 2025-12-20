@@ -54,6 +54,8 @@ const importShpBtn = document.getElementById('import-shp-btn');
 const importShpExampleBtn = document.getElementById('import-shp-example-btn');
 const geoJsonInput = document.getElementById('geojson-input');
 const shpInput = document.getElementById('shp-input');
+const randomCountInput = document.getElementById('random-count');
+const randomApplyBtn = document.getElementById('random-apply-btn');
 const toggleOriginalCheckbox = document.getElementById('toggle-original');
 const toggleSimplifiedCheckbox = document.getElementById('toggle-simplified');
 const toggleNamesCheckbox = document.getElementById('toggle-names');
@@ -72,6 +74,7 @@ let lastPickExpression = { simplified: '', original: '' };
 let currentIfMode = 'simplified';
 let currentPickMode = 'simplified';
 let currentGestionaMode = 'simplified';
+let importedPolygonCounter = 0;
 
 initMap();
 updateOutput();
@@ -256,6 +259,20 @@ function roundCoord(value) {
   return Number(value.toFixed(COORD_PRECISION));
 }
 
+function createImportToken() {
+  importedPolygonCounter += 1;
+  return `import-${importedPolygonCounter}`;
+}
+
+function setImportToken(layer, token) {
+  if (!layer) return;
+  layer.importToken = token;
+}
+
+function getImportToken(layer) {
+  return layer?.importToken || '';
+}
+
 async function importGeoJsonFromUrl(url, label = 'GeoJSON remoto') {
   try {
     logMessage(`Importando GeoJSON desde ${label}...`);
@@ -370,10 +387,14 @@ function processGeoJsonData(data, label = 'GeoJSON') {
 
   polygons.forEach(({ rings, name }, index) => {
     const polygonName = name || `Polígono ${index + 1}`;
+    const importToken = createImportToken();
     const simplifiedRings = rings.map((ring) => reducePoints(ring, MAX_IMPORT_POINTS));
 
     const originalLayer = L.polygon(rings, IMPORT_ORIGINAL_STYLE);
     const simplifiedLayer = L.polygon(simplifiedRings, IMPORT_SIMPLIFIED_STYLE);
+
+    setImportToken(originalLayer, importToken);
+    setImportToken(simplifiedLayer, importToken);
 
     setPolygonName(originalLayer, polygonName);
     setPolygonName(simplifiedLayer, polygonName);
@@ -536,6 +557,92 @@ function applyNameVisibility() {
   const container = map.getContainer?.();
   if (!container) return;
   container.classList.toggle('hide-polygon-names', !visible);
+}
+
+function getImportedPolygonPairs() {
+  const pairs = new Map();
+  if (!importedSimplifiedGroup || !importedOriginalGroup) return pairs;
+
+  importedSimplifiedGroup.getLayers().forEach((layer) => {
+    const token = getImportToken(layer);
+    if (!token) return;
+    const entry = pairs.get(token) || {};
+    entry.simplified = layer;
+    pairs.set(token, entry);
+  });
+
+  importedOriginalGroup.getLayers().forEach((layer) => {
+    const token = getImportToken(layer);
+    if (!token) return;
+    const entry = pairs.get(token) || {};
+    entry.original = layer;
+    pairs.set(token, entry);
+  });
+
+  return pairs;
+}
+
+function shuffleArray(values) {
+  const array = [...values];
+  for (let i = array.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function applyRandomSelection(count) {
+  const pairs = getImportedPolygonPairs();
+  const tokens = Array.from(pairs.keys());
+
+  if (!tokens.length) {
+    logMessage('No hay polígonos importados para seleccionar aleatoriamente.', 'warn');
+    return;
+  }
+
+  if (!Number.isFinite(count) || count <= 0) {
+    logMessage('El número de polígonos debe ser mayor que cero.', 'warn');
+    return;
+  }
+
+  const target = Math.min(count, tokens.length);
+  if (target === tokens.length) {
+    logMessage(
+      `La selección solicitada coincide con los ${tokens.length} polígonos importados.`,
+      'info'
+    );
+    return;
+  }
+
+  const selectedTokens = new Set(shuffleArray(tokens).slice(0, target));
+  tokens.forEach((token) => {
+    if (selectedTokens.has(token)) return;
+    const pair = pairs.get(token);
+    if (pair?.simplified) importedSimplifiedGroup.removeLayer(pair.simplified);
+    if (pair?.original) importedOriginalGroup.removeLayer(pair.original);
+  });
+
+  const remainingLayers = [];
+  selectedTokens.forEach((token) => {
+    const pair = pairs.get(token);
+    if (pair?.simplified) remainingLayers.push(pair.simplified);
+    else if (pair?.original) remainingLayers.push(pair.original);
+  });
+
+  if (remainingLayers.length) {
+    const group = L.featureGroup(remainingLayers);
+    map.fitBounds(group.getBounds(), { padding: [20, 20] });
+  }
+
+  updateOutput();
+  applyOriginalVisibility();
+  applySimplifiedVisibility();
+  applyNameVisibility();
+
+  logMessage(
+    `Selección aleatoria aplicada: ${target} de ${tokens.length} polígonos importados.`,
+    'info'
+  );
 }
 
 function getModeLabel(mode = 'simplified') {
@@ -720,6 +827,11 @@ importShpExampleBtn?.addEventListener('click', () => {
     'ejemplosshp/50001uA_50004_14082025_PARCELA.ZIP',
     '50001uA_50004_14082025_PARCELA.ZIP'
   );
+});
+
+randomApplyBtn?.addEventListener('click', () => {
+  const value = Number.parseInt(randomCountInput?.value, 10);
+  applyRandomSelection(value);
 });
 
 toggleOriginalCheckbox?.addEventListener('change', applyOriginalVisibility);
