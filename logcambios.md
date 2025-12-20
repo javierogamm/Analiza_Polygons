@@ -111,3 +111,8 @@
 - Botones de GeoJSON destacados en la barra lateral que descargan directamente el archivo en el mismo formato de importación.
 - Descargas diferenciadas para polígonos simplificados y completos sin pasos intermedios.
 - Documentación ajustada para aclarar el formato `FeatureCollection` listo para reimportar.
+
+## v1.24.0
+- Botón dedicado para cargar archivos SHP en ZIP desde el equipo y convertirlos a polígonos visibles en el mapa.
+- Soporte para importar SHP por capas y registrar el procesamiento en el panel de pasos con shpjs.
+- Botón de ejemplo SHP conectado a los ZIP disponibles en `/ejemplosshp` y versión visible en el encabezado.
