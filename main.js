@@ -482,7 +482,7 @@ function processGeoJsonData(data, label = 'GeoJSON', options = {}) {
     if (limit < polygons.length) {
       logMessage(`Se cargarán solo ${limit} polígonos de ${polygons.length} disponibles.`, 'info');
     }
-    polygons = polygons.slice(0, limit);
+    polygons = shuffleArray(polygons).slice(0, limit);
   }
 
   if (!polygons.length) {
@@ -1341,7 +1341,7 @@ function buildGestionaExport(referenceField, coordsField, polygons, values) {
       const sanitizedValue = sanitizeSelectorValue(values[index]);
       return [
         `{{#${section} | condition :(personalized.${referenceField}=="${sanitizedValue}")}}`,
-        `{{let | reference: personalized.${coordsField} | result: ${serialized}}}`,
+        `{{let | reference: personalized.${coordsField} | result: "${serialized}"}}`,
         `{{/${section}}}`,
       ].join('\n');
     })
